@@ -46,6 +46,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
         name: true,
         email: true,
         role: true,
+        status: true,
         neighborhoodId: true,
         createdAt: true
       }
@@ -54,6 +55,12 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     if (!user) {
       const err: any = new Error("Unauthorized: user not found");
       err.statusCode = 401;
+      return next(err);
+    }
+
+    if (user.status === "SUSPENDED") {
+      const err: any = new Error("Your account has been suspended. Please contact support.");
+      err.statusCode = 403;
       return next(err);
     }
 
