@@ -1,13 +1,195 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// Neighbo uses Neon (PostgreSQL). Runtime URL is normalized in src/config/env.js
+// (sslmode=require; pgbouncer=true when using a *pooler* host).
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+enum NotificationType {
+  FOLLOW
+  POST_ACTIVITY
+  SYSTEM
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ProductType {
+  PREMIUM_PLAN
+  CONTENT
+}
+
+enum PlanType {
+  THREE_MONTHS
+  SIX_MONTHS
+  ONE_YEAR
+}
+
+model Neighborhood {
+  id          String @id @default(uuid())
+  name        String @unique
+  description String
+
+  users User[]
+  posts Post[]
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String @unique
+
+  posts Post[]
+}
+
+model User {
+  id              String         @id @default(uuid())
+  name            String
+  email           String         @unique
+  password        String
+  role            Role           @default(USER)
+  neighborhoodId  String?
+  neighborhood    Neighborhood?  @relation(fields: [neighborhoodId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+
+  posts Post[]
+  comments Comment[]
+  votes Vote[]
+  notifications Notification[]
+  payments Payment[]
+  invoices Invoice[]
+  subscriptions Subscription[]
+
+  // Social graph (self-relation through Follow join table)
+  following Follow[] @relation("UserFollowing")
+  followers Follow[] @relation("UserFollowers")
+}
+
+model Post {
+  id             String   @id @default(uuid())
+  title          String
+  content        String
+  images         String[]
+  isPremium      Boolean  @default(false)
+  price          Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userId         String
+  neighborhoodId String
+  categoryId     String
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  neighborhood Neighborhood @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
+  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  comments Comment[]
+  votes Vote[]
+  @@index([neighborhoodId]) // Fast filtering for the Home Feed
+  @@index([categoryId])     // Fast filtering for Category searches
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  userId String
+  postId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+model Vote {
+  userId String
+  postId String
+  type   VoteType
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  amount        Float
+  status        PaymentStatus @default(PENDING)
+  transactionId String        @unique
+  paymentMethod String
+  createdAt     DateTime      @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  invoice Invoice?
+}
+
+model Invoice {
+  id            String      @id @default(uuid())
+  invoiceNumber String      @unique
+  purchaseDate  DateTime    @default(now())
+  buyerName     String
+  productType   ProductType
+  planDetails   String?
+  paymentAmount Float
+  paymentMethod String
+  createdAt     DateTime    @default(now())
+
+  userId    String
+  paymentId String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  planType  PlanType
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
