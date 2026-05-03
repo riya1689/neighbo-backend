@@ -1,4 +1,4 @@
-import express, { Router } from "express"; // TS Change: Imported Router type
+import express, { type Router } from "express"; // TS Change: Imported Router type
 
 import healthRoutes from "./health.routes.js"; // TS Change: Removed .js extensions
 // import authRoutes from "../modules/auth/auth.routes";

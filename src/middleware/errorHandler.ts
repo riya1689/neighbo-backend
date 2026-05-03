@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express"; // TS Change: Imported Express types
+import type { Request, Response, NextFunction } from "express"; // TS Change: Imported Express types
 
 /**
  * Global error handler (Express 4-arg middleware). Place after all routes and notFound.

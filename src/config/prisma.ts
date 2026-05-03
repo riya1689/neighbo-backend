@@ -1,7 +1,10 @@
-import { PrismaClient, Prisma } from "@prisma/client"; // TS Change: Added Prisma for types
+import { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
 // Normalizes DATABASE_URL (SSL, Neon pooler) before any Prisma use
-import { DATABASE_URL } from "./env.js"; // TS Change: Removed .js extension
+import { DATABASE_URL } from "./env.js";
 
 /**
  * TS Change: Extend globalThis to include the prisma instance.
@@ -13,19 +16,16 @@ const globalForPrisma = globalThis as unknown as {
 
 // TS Change: Added explicit return type : PrismaClient
 function createPrismaClient(): PrismaClient {
-  // TS Change: Typed the options object using Prisma.PrismaClientOptions
+  const pool = new pg.Pool({ connectionString: DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+
   const options: Prisma.PrismaClientOptions = {
+    adapter,
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
         : ["error"]
   };
-
-  if (DATABASE_URL) {
-    options.datasources = {
-      db: { url: DATABASE_URL }
-    };
-  }
 
   return new PrismaClient(options);
 }

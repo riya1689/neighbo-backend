@@ -1,4 +1,4 @@
-import express, { Application, Request } from "express"; // TS Change: Added types
+import express, { type Application, type Request } from "express"; // TS Change: Added types
 import cors from "cors";
 import helmet from "helmet";
 import hpp from "hpp";

@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from "express"; // TS Change: Imported Express types
+import type { Request, Response, NextFunction } from "express"; // TS Change: Imported Express types
 import jwt from "jsonwebtoken";
-import prisma from "../config/prisma"; // TS Change: Removed .js extension
-import { JWT_SECRET } from "../config/env"; // TS Change: Removed .js extension
+import prisma from "../config/prisma.js"; // TS Change: Removed .js extension
+import { JWT_SECRET } from "../config/env.js"; // TS Change: Removed .js extension
 
 // TS Change: Define the shape of your JWT payload
 interface DecodedToken extends jwt.JwtPayload {

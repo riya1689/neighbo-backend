@@ -1,4 +1,4 @@
-import { Request, Response } from "express"; // TS Change: Imported Express types
+import type { Request, Response } from "express"; // TS Change: Imported Express types
 
 // TS Change: Added types for req and res
 function notFound(req: Request, res: Response): Response {
