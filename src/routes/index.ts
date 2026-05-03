@@ -4,6 +4,7 @@ import healthRoutes from "./health.routes.js";
 import authRoutes from "../modules/auth/auth.routes.js";
 import userRoutes from "../modules/user/user.routes.js";
 import neighborhoodRoutes from "../modules/neighborhood/neighborhood.routes.js";
+import adminRoutes from "../modules/admin/admin.routes.js";
 // import postRoutes from "../modules/post/post.routes.js";
 // import commentRoutes from "../modules/comment/comment.routes.js";
 // import followRoutes from "../modules/follow/follow.routes.js";
@@ -26,6 +27,6 @@ router.use("/neighborhoods", neighborhoodRoutes);
 // router.use("/notifications", notificationRoutes);
 // router.use("/payments", paymentRoutes);
 // router.use("/search", searchRoutes);
-// router.use("/admin", adminRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;
