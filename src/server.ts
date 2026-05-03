@@ -1,7 +1,7 @@
-import "./config/env"; // TS Change: Removed .js
-import app from "./app";
-import prisma from "./config/prisma";
-import { PORT, SSL_STORE_ID, SSL_IS_SANDBOX } from "./config/env";
+import "./config/env.js"; // TS Change: Removed .js
+import app from "./app.js";
+import prisma from "./config/prisma.js";
+import { PORT, SSL_STORE_ID, SSL_IS_SANDBOX } from "./config/env.js";
 import { Server } from "http"; // TS Change: Imported Server type
 
 // 🚀 Only ONE listener for the whole app
