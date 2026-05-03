@@ -1,7 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client"; // TS Change: Added Prisma for types
 
 // Normalizes DATABASE_URL (SSL, Neon pooler) before any Prisma use
-import { DATABASE_URL } from "./env"; // TS Change: Removed .js extension
+import { DATABASE_URL } from "./env.js"; // TS Change: Removed .js extension
 
 /**
  * TS Change: Extend globalThis to include the prisma instance.

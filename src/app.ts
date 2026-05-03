@@ -3,10 +3,10 @@ import cors from "cors";
 import helmet from "helmet";
 import hpp from "hpp";
 
-import routes from "./routes/index.js"; // TS Change: Removed .js
+import routes from "./routes/index.js"; 
 import notFound from "./middleware/notFound.js"; 
 import errorHandler from "./middleware/errorHandler.js";
-//import { globalLimiter } from "./middlewares/rateLimiter.js";
+//import { globalLimiter } from "./middleware/rateLimiter.js";
 import { ALLOWED_ORIGINS } from "./config/env.js";
 
 const app: Application = express(); // TS Change: Explicit type Application
