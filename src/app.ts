@@ -6,14 +6,14 @@ import hpp from "hpp";
 import routes from "./routes/index.js"; // TS Change: Removed .js
 import notFound from "./middleware/notFound.js"; 
 import errorHandler from "./middleware/errorHandler.js";
-import { globalLimiter } from "./middlewares/rateLimiter.js";
+//import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { ALLOWED_ORIGINS } from "./config/env.js";
 
 const app: Application = express(); // TS Change: Explicit type Application
 
 // Security/UX defaults
 app.use(helmet());
-app.use(globalLimiter);
+//app.use(globalLimiter);
 
 // TS Change: Added types for CORS origin callback
 app.use(cors({
