@@ -13,6 +13,11 @@ enum Role {
   ADMIN
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 enum VoteType {
   UPVOTE
   DOWNVOTE
@@ -63,6 +68,7 @@ model User {
   email           String         @unique
   password        String
   role            Role           @default(USER)
+  status          UserStatus     @default(ACTIVE)
   neighborhoodId  String?
   neighborhood    Neighborhood?  @relation(fields: [neighborhoodId], references: [id], onDelete: SetNull)
   createdAt       DateTime       @default(now())
@@ -191,4 +197,15 @@ model Subscription {
 
   userId String
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PremiumPlan {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  price       Float
+  duration    Int      // duration in days
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
