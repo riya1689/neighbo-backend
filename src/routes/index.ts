@@ -7,6 +7,7 @@ import neighborhoodRoutes from "../modules/neighborhood/neighborhood.routes.js";
 import adminRoutes from "../modules/admin/admin.routes.js";
 import postRoutes from "../modules/post/post.routes.js";
 import categoryRoutes from "../modules/category/category.routes.js";
+import planRoutes from "../modules/plan/plan.routes.js";
 
 const router: Router = express.Router(); // TS Change: Explicitly typed as Router
 
@@ -17,5 +18,6 @@ router.use("/neighborhoods", neighborhoodRoutes);
 router.use("/admin", adminRoutes);
 router.use("/posts", postRoutes);
 router.use("/categories", categoryRoutes);
+router.use("/plans", planRoutes);
 
 export default router;
