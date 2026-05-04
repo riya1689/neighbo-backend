@@ -20,3 +20,5 @@ Thumbs.db
 .idea
 docs
 /generated/prisma
+
+scratch/
