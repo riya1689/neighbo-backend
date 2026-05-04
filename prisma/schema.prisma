@@ -84,6 +84,8 @@ model User {
   // Social graph (self-relation through Follow join table)
   following Follow[] @relation("UserFollowing")
   followers Follow[] @relation("UserFollowers")
+
+  impressions PostImpression[]
 }
 
 model Post {
@@ -106,6 +108,7 @@ model Post {
 
   comments Comment[]
   votes Vote[]
+  impressions PostImpression[]
   @@index([neighborhoodId]) // Fast filtering for the Home Feed
   @@index([categoryId])     // Fast filtering for Category searches
 }
@@ -208,4 +211,16 @@ model PremiumPlan {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model PostImpression {
+  id       String   @id @default(uuid())
+  userId   String
+  postId   String
+  seenAt   DateTime @default(now())
+
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, postId])
 }

@@ -1,9 +1,21 @@
 import express, { type Router } from "express";
-import { getUserProfile } from "./user.controller.js";
+import { 
+  getUserProfile, 
+  toggleFollow, 
+  getSuggestedUsers, 
+  getFollowers, 
+  getFollowing, 
+  getConnectionStats 
+} from "./user.controller.js";
 import { protect } from "../../middlewares/authMiddleware.js";
 
 const router: Router = express.Router();
 
 router.get("/profile", protect, getUserProfile);
+router.post("/:id/follow", protect, toggleFollow);
+router.get("/suggested", protect, getSuggestedUsers);
+router.get("/followers", protect, getFollowers);
+router.get("/following", protect, getFollowing);
+router.get("/stats", protect, getConnectionStats);
 
 export default router;
