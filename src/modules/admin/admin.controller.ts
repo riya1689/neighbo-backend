@@ -16,23 +16,24 @@ export const getStats = async (req: Request, res: Response, next: NextFunction):
       totalCategories,
       totalNeighborhoods,
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { subscriptions: { some: { isActive: true } } } }),
-      prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }),
-      prisma.subscription.count(),
-      prisma.category.count(),
-      prisma.neighborhood.count(),
+      prisma.user.count().catch(() => 0),
+      prisma.user.count({ where: { subscriptions: { some: { isActive: true } } } }).catch(() => 0),
+      prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }).catch(() => ({ _sum: { amount: 0 } })),
+      prisma.subscription.count().catch(() => 0),
+      prisma.category.count().catch(() => 0),
+      prisma.neighborhood.count().catch(() => 0),
     ]);
 
     res.json({
-      totalUsers,
-      totalPremiumUsers,
-      totalRevenue: totalRevenue._sum.amount || 0,
-      totalPremiumPlanPurchases,
-      totalCategories,
-      totalNeighborhoods,
+      totalUsers: totalUsers || 0,
+      totalPremiumUsers: totalPremiumUsers || 0,
+      totalRevenue: totalRevenue._sum?.amount || 0,
+      totalPremiumPlanPurchases: totalPremiumPlanPurchases || 0,
+      totalCategories: totalCategories || 0,
+      totalNeighborhoods: totalNeighborhoods || 0,
     });
   } catch (error) {
+    console.error("Admin stats error:", error);
     next(error);
   }
 };
@@ -138,9 +139,14 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
 export const createCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name } = req.body;
+    if (!name) {
+       res.status(400).json({ message: "Category name is required" });
+       return;
+    }
     const category = await prisma.category.create({ data: { name } });
     res.status(201).json(category);
   } catch (error) {
+    console.error("Create category error:", error);
     next(error);
   }
 };
@@ -185,9 +191,14 @@ export const getNeighborhoods = async (req: Request, res: Response, next: NextFu
 export const createNeighborhood = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, description } = req.body;
-    const neighborhood = await prisma.neighborhood.create({ data: { name, description } });
+    if (!name) {
+       res.status(400).json({ message: "Neighborhood name is required" });
+       return;
+    }
+    const neighborhood = await prisma.neighborhood.create({ data: { name, description: description || "" } });
     res.status(201).json(neighborhood);
   } catch (error) {
+    console.error("Create neighborhood error:", error);
     next(error);
   }
 };
@@ -222,11 +233,23 @@ export const getPlans = async (req: Request, res: Response, next: NextFunction):
 export const createPlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, description, price, duration } = req.body;
+    
+    if (!name || !price || !duration) {
+       res.status(400).json({ message: "Name, price and duration are required" });
+       return;
+    }
+
     const plan = await prisma.premiumPlan.create({
-      data: { name, description, price: Number(price), duration: Number(duration) }
+      data: { 
+        name, 
+        description: description || "", 
+        price: parseFloat(String(price)), 
+        duration: parseInt(String(duration)) 
+      }
     });
     res.status(201).json(plan);
   } catch (error) {
+    console.error("Create plan error:", error);
     next(error);
   }
 };
