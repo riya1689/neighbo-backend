@@ -13,19 +13,28 @@ const app: Application = express(); // TS Change: Explicit type Application
 
 // Security/UX defaults
 app.use(helmet());
-app.use(globalLimiter);
-
 // TS Change: Added types for CORS origin callback
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    console.log(`CORS Check - Origin: ${origin}, Allowed: ${ALLOWED_ORIGINS.join(', ')}`);
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
+      console.log(`CORS Blocked for: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
 }));
+
+app.use(globalLimiter);
+
+// Log requests to help debug CORS
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.get('Origin')}`);
+  next();
+});
+
 
 app.use(express.json({ limit: '10kb' }));
 app.use(hpp());

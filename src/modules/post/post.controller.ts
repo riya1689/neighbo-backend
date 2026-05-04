@@ -183,3 +183,51 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
     next(error);
   }
 };
+
+/**
+ * @desc    Search posts by query (category, neighborhood, username)
+ * @route   GET /api/posts/search
+ * @access  Public
+ */
+export const searchPosts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { q } = req.query;
+    const queryStr = q ? String(q).trim() : "";
+
+    const posts = await prisma.post.findMany({
+      where: {
+        OR: [
+          { title: { contains: queryStr, mode: "insensitive" } },
+          { content: { contains: queryStr, mode: "insensitive" } },
+          { category: { name: { contains: queryStr, mode: "insensitive" } } },
+          { neighborhood: { name: { contains: queryStr, mode: "insensitive" } } },
+          { user: { name: { contains: queryStr, mode: "insensitive" } } },
+        ],
+      },
+      include: {
+        user: { select: { name: true } },
+        category: { select: { name: true } },
+        neighborhood: { select: { name: true } },
+        votes: true,
+        comments: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Map to include counts
+    const mappedPosts = posts.map(post => {
+      const upvotes = post.votes.filter(v => v.type === "UPVOTE").length;
+      const downvotes = post.votes.filter(v => v.type === "DOWNVOTE").length;
+      return {
+        ...post,
+        netVotes: upvotes - downvotes,
+        commentCount: post.comments.length
+      };
+    });
+
+    res.json(mappedPosts);
+  } catch (error) {
+    next(error);
+  }
+};
+

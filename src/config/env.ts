@@ -62,7 +62,7 @@ export function getRequiredEnv(name: string): string {
 
 // TS Change: Explicit type string[]
 export const ALLOWED_ORIGINS: string[] = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim().replace(/^["']|["']$/g, "")) 
   : ['http://localhost:3000'];
 
 export const DATABASE_URL: string = getRequiredEnv("DATABASE_URL");
