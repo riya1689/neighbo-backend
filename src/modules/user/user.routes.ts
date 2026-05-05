@@ -5,7 +5,9 @@ import {
   getSuggestedUsers, 
   getFollowers, 
   getFollowing, 
-  getConnectionStats 
+  getConnectionStats,
+  getPublicProfile,
+  getPublicProfilePosts
 } from "./user.controller.js";
 import { protect } from "../../middlewares/authMiddleware.js";
 
@@ -17,5 +19,9 @@ router.get("/suggested", protect, getSuggestedUsers);
 router.get("/followers", protect, getFollowers);
 router.get("/following", protect, getFollowing);
 router.get("/stats", protect, getConnectionStats);
+
+// Public routes
+router.get("/profile/public/:username", getPublicProfile);
+router.get("/profile/public/:username/posts", getPublicProfilePosts);
 
 export default router;
