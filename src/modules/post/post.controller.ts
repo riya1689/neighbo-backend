@@ -53,10 +53,15 @@ export const getAllPosts = async (req: Request, res: Response, next: NextFunctio
         user: { select: { name: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
+        shares: { select: { id: true } },
       },
       orderBy: { createdAt: "desc" },
     });
-    res.json(posts);
+    const mappedPosts = posts.map(post => ({
+      ...post,
+      shareCount: post.shares.length
+    }));
+    res.json(mappedPosts);
   } catch (error) {
     next(error);
   }
@@ -109,7 +114,7 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
     const neighborhoodId = user?.neighborhoodId;
 
     // 2. Fetch candidates
-    const candidates = await prisma.post.findMany({
+    const recentPosts = await prisma.post.findMany({
       take: 100,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -118,7 +123,54 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
         neighborhood: { select: { name: true } },
         votes: { select: { type: true, userId: true } },
         comments: { select: { id: true, userId: true } },
+        shares: { select: { id: true, userId: true } },
       }
+    });
+
+    const recentShares = await prisma.share.findMany({
+      where: {
+        userId: { in: [userId, ...followingIds] }
+      },
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { name: true } },
+        post: {
+          include: {
+            user: { select: { name: true } },
+            category: { select: { name: true } },
+            neighborhood: { select: { name: true } },
+            votes: { select: { type: true, userId: true } },
+            comments: { select: { id: true, userId: true } },
+            shares: { select: { id: true, userId: true } },
+          }
+        }
+      }
+    });
+
+    const candidateList: any[] = [];
+    
+    recentPosts.forEach(post => {
+      candidateList.push({
+         ...post,
+         feedId: post.id,
+         sharedBy: null,
+         shareCount: post.shares.length,
+         activityDate: post.createdAt,
+         _isShare: false
+      });
+    });
+
+    recentShares.forEach(share => {
+      candidateList.push({
+         ...share.post,
+         feedId: `share-${share.id}`,
+         sharedBy: share.user.name,
+         shareCount: share.post.shares.length,
+         activityDate: share.createdAt,
+         _isShare: true,
+         _shareUserId: share.userId
+      });
     });
 
     // 3. Fetch impressions for penalty
@@ -129,9 +181,9 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
     const seenPostIds = new Set(impressions.map(i => i.postId));
 
     // Calculate score
-    const scoredPosts = candidates.map(post => {
+    const scoredPosts = candidateList.map(post => {
       let score = 0;
-      const isNew = (new Date().getTime() - new Date(post.createdAt).getTime()) < 24 * 60 * 60 * 1000;
+      const isNew = (new Date().getTime() - new Date(post.activityDate).getTime()) < 24 * 60 * 60 * 1000;
 
       // Tier 1: Locality + Freshness
       if (neighborhoodId && post.neighborhoodId === neighborhoodId) {
@@ -142,30 +194,36 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
       if (followingIds.includes(post.userId)) {
         score += 40;
       }
+      if (post._isShare && followingIds.includes(post._shareUserId)) {
+        score += 45; // Boost shared posts by followed users
+      }
+      if (post._isShare && post._shareUserId === userId) {
+        score += 50; // Boost own shares
+      }
 
       // Tier 3: Network Activity
       const hasFollowerInteraction = 
-        post.votes.some(v => followingIds.includes(v.userId)) ||
-        post.comments.some(c => followingIds.includes(c.userId));
+        post.votes.some((v: any) => followingIds.includes(v.userId)) ||
+        post.comments.some((c: any) => followingIds.includes(c.userId));
       if (hasFollowerInteraction) {
         score += 30;
       }
       
       // Tier 5: High Engagement
-      const engagement = post.votes.length + post.comments.length;
+      const engagement = post.votes.length + post.comments.length + post.shareCount;
       score += Math.min(engagement * 2, 15);
 
       // Tier 6: Fallback (Recency)
       if (isNew) score += 10;
 
-      // Apply "Seen" Penalty
-      if (seenPostIds.has(post.id)) {
+      // Apply "Seen" Penalty (only if it's the original post, or penalize both?)
+      if (seenPostIds.has(post.id) && !post._isShare) {
         score -= 45;
       }
 
-      const { votes, comments, ...postData } = post;
-      const upvotes = votes.filter(v => v.type === "UPVOTE").length;
-      const downvotes = votes.filter(v => v.type === "DOWNVOTE").length;
+      const { votes, comments, shares, activityDate, _isShare, _shareUserId, ...postData } = post;
+      const upvotes = votes.filter((v: any) => v.type === "UPVOTE").length;
+      const downvotes = votes.filter((v: any) => v.type === "DOWNVOTE").length;
 
       return {
         ...postData,
@@ -210,6 +268,7 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
         neighborhood: { select: { name: true } },
         votes: true,
         comments: true,
+        shares: { select: { id: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -221,7 +280,8 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
       return {
         ...post,
         netVotes: upvotes - downvotes,
-        commentCount: post.comments.length
+        commentCount: post.comments.length,
+        shareCount: post.shares.length
       };
     });
 
@@ -231,3 +291,44 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+
+/**
+ * @desc    Share a post
+ * @route   POST /api/posts/:postId/share
+ * @access  Private
+ */
+export const sharePost = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const postId = req.params.postId as string;
+    const userId = req.user.id;
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if (!post) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    const share = await prisma.share.create({
+      data: {
+        userId,
+        postId
+      }
+    });
+
+    if (post.userId !== userId) {
+      await prisma.notification.create({
+        data: {
+          userId: post.userId,
+          message: `${req.user.name} shared your post`,
+          type: "SHARE",
+          link: `/posts/${postId}`
+        }
+      });
+    }
+
+    const shareCount = await prisma.share.count({ where: { postId } });
+    res.status(201).json({ message: "Post shared successfully", shareCount });
+  } catch (error) {
+    next(error);
+  }
+};

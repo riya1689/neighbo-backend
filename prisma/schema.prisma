@@ -30,6 +30,7 @@ enum NotificationType {
   COMMENT
   REPLY
   SYSTEM
+  SHARE
 }
 
 enum PaymentStatus {
@@ -83,6 +84,7 @@ model User {
   payments Payment[]
   invoices Invoice[]
   subscriptions Subscription[]
+  shares Share[]
 
   // Social graph (self-relation through Follow join table)
   following Follow[] @relation("UserFollowing")
@@ -112,6 +114,7 @@ model Post {
   comments Comment[]
   votes Vote[]
   impressions PostImpression[]
+  shares Share[]
   @@index([neighborhoodId]) // Fast filtering for the Home Feed
   @@index([categoryId])     // Fast filtering for Category searches
 }
@@ -230,4 +233,18 @@ model PostImpression {
   post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([userId, postId])
+}
+
+model Share {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postId])
 }
