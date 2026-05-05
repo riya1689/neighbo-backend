@@ -41,11 +41,30 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Generate unique username
+    let baseUsername = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    if (!baseUsername) baseUsername = 'user';
+    
+    let username = baseUsername;
+    let counter = 1;
+    let usernameExists = true;
+
+    while (usernameExists) {
+      const existing = await prisma.user.findUnique({ where: { username } });
+      if (!existing) {
+        usernameExists = false;
+      } else {
+        username = `${baseUsername}_${counter}`;
+        counter++;
+      }
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
         name,
         email,
+        username,
         password: hashedPassword,
         neighborhoodId,
       },
@@ -53,6 +72,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
         id: true,
         name: true,
         email: true,
+        username: true,
         role: true,
         neighborhoodId: true,
         createdAt: true,
