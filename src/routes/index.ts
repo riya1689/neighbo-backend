@@ -11,6 +11,7 @@ import planRoutes from "../modules/plan/plan.routes.js";
 import voteRoutes from "../modules/vote/vote.routes.js";
 import commentRoutes from "../modules/comment/comment.routes.js";
 import notificationRoutes from "../modules/notification/notification.routes.js";
+import paymentRoutes from "../modules/payment/payment.routes.js";
 
 const router: Router = express.Router(); // TS Change: Explicitly typed as Router
 
@@ -25,5 +26,6 @@ router.use("/plans", planRoutes);
 router.use("/votes", voteRoutes);
 router.use("/comments", commentRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/payments", paymentRoutes);
 
 export default router;

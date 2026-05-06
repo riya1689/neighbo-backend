@@ -37,6 +37,7 @@ app.use((req, res, next) => {
 
 
 app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true })); // Required for SSLCommerz form POST callbacks
 app.use(hpp());
 
 // API routes

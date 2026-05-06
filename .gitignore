@@ -22,3 +22,4 @@ docs
 /generated/prisma
 
 scratch/
+src/generated/

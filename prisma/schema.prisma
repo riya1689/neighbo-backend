@@ -46,27 +46,34 @@ model User {
   subscriptions         Subscription[]
   neighborhood          Neighborhood?    @relation(fields: [neighborhoodId], references: [id])
   votes                 Vote[]
+  adminRevenues         AdminRevenue[]
+  creatorEarnings       CreatorEarning[] @relation("CreatorEarnings")
+  payerEarnings         CreatorEarning[] @relation("PayerEarnings")
+  unlockedPosts         UnlockedPost[]
 }
 
 model Post {
-  id             String           @id @default(uuid())
-  title          String
-  content        String
-  images         String[]
-  isPremium      Boolean          @default(false)
-  price          Float            @default(0)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  userId         String
-  neighborhoodId String
-  categoryId     String
-  comments       Comment[]
-  category       Category         @relation(fields: [categoryId], references: [id])
-  neighborhood   Neighborhood     @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  impressions    PostImpression[]
-  shares         Share[]
-  votes          Vote[]
+  id              String           @id @default(uuid())
+  title           String
+  content         String
+  images          String[]
+  isPremium       Boolean          @default(false)
+  price           Float            @default(0)
+  unlockPrice     Float?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  userId          String
+  neighborhoodId  String
+  categoryId      String
+  comments        Comment[]
+  category        Category         @relation(fields: [categoryId], references: [id])
+  neighborhood    Neighborhood     @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impressions     PostImpression[]
+  shares          Share[]
+  votes           Vote[]
+  creatorEarnings CreatorEarning[]
+  unlockedBy      UnlockedPost[]
 
   @@index([neighborhoodId])
   @@index([categoryId])
@@ -191,6 +198,48 @@ model Share {
   @@index([postId])
 }
 
+model AdminRevenue {
+  id        String        @id @default(cuid())
+  userId    String
+  planType  String
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+  tranId    String        @unique
+  sslTranId String?       @unique
+  invoiceId String?
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id])
+}
+
+model CreatorEarning {
+  id        String        @id @default(cuid())
+  creatorId String
+  payerId   String
+  postId    String
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+  tranId    String        @unique
+  sslTranId String?       @unique
+  invoiceId String?
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  creator   User          @relation("CreatorEarnings", fields: [creatorId], references: [id])
+  payer     User          @relation("PayerEarnings", fields: [payerId], references: [id])
+  post      Post          @relation(fields: [postId], references: [id])
+}
+
+model UnlockedPost {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
 enum Role {
   USER
   ADMIN
@@ -214,6 +263,7 @@ enum NotificationType {
   COMMENT
   REPLY
   SHARE
+  PAYMENT
 }
 
 enum PaymentStatus {

@@ -8,12 +8,18 @@ import prisma from "../../config/prisma.js";
  */
 export const createPost = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { title, content, images, isPremium, price, neighborhoodId, categoryId } = req.body;
+    const { title, content, images, isPremium, price, unlockPrice, neighborhoodId, categoryId } = req.body;
     const userId = req.user.id;
 
     // Basic validation
     if (!title || !content || !neighborhoodId || !categoryId) {
       res.status(400).json({ message: "Please provide title, content, neighborhood, and category." });
+      return;
+    }
+
+    // Validate unlockPrice when premium
+    if (isPremium && (!unlockPrice || Number(unlockPrice) <= 0)) {
+      res.status(400).json({ message: "Please set a valid unlock price (BDT) for premium content." });
       return;
     }
 
@@ -23,7 +29,8 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
         content,
         images: Array.isArray(images) ? images : images ? [images] : [],
         isPremium: Boolean(isPremium),
-        price: isPremium ? Number(price) : 0,
+        price: isPremium ? Number(price || unlockPrice) : 0,
+        unlockPrice: isPremium ? Number(unlockPrice) : null,
         userId,
         neighborhoodId,
         categoryId,
