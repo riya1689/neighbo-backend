@@ -49,7 +49,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
     const where = search
       ? {
           OR: [
-            { name: { contains: String(search), mode: "insensitive" as const } },
+            { displayName: { contains: String(search), mode: "insensitive" as const } },
             { email: { contains: String(search), mode: "insensitive" as const } },
           ],
         }
@@ -72,7 +72,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
 
     const formattedUsers = users.map((user) => ({
       id: user.id,
-      name: user.name,
+      name: user.displayName,
       email: user.email,
       role: user.role,
       status: user.status,
@@ -273,7 +273,7 @@ export const getPayments = async (req: Request, res: Response, next: NextFunctio
   try {
     const payments = await prisma.payment.findMany({
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { displayName: true, email: true } },
         invoice: true,
       },
       orderBy: { createdAt: "desc" },

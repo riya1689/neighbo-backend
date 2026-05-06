@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import bcrypt from "bcryptjs";
 import prisma from "../../config/prisma.js";
 
 /**
@@ -12,17 +13,24 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
       where: { id: req.user.id },
       select: {
         id: true,
-        name: true,
+        displayName: true,
         username: true,
         email: true,
         role: true,
         neighborhoodId: true,
+        bio: true,
+        nameLastUpdatedAt: true,
+        passwordLastUpdatedAt: true,
         neighborhood: {
           select: {
             name: true,
           },
         },
         createdAt: true,
+        subscriptions: {
+          where: { isActive: true },
+          select: { planType: true }
+        }
       },
     });
 
@@ -80,7 +88,7 @@ export const toggleFollow = async (req: Request, res: Response, next: NextFuncti
           data: {
             userId: followingId,
             type: "FOLLOW",
-            message: `${req.user.name || "Someone"} started following you.`,
+            message: `${req.user.displayName || "Someone"} started following you.`,
           },
         }),
       ]);
@@ -116,7 +124,7 @@ export const getSuggestedUsers = async (req: Request, res: Response, next: NextF
         neighborhoodId: currentUser?.neighborhoodId,
       },
       take: 5,
-      select: { id: true, name: true, username: true, neighborhood: { select: { name: true } } },
+      select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } },
     });
 
     // Priority 2: Fill remaining slots with recent active users
@@ -129,7 +137,7 @@ export const getSuggestedUsers = async (req: Request, res: Response, next: NextF
         },
         orderBy: { createdAt: 'desc' },
         take: remainingSlots,
-        select: { id: true, name: true, username: true, neighborhood: { select: { name: true } } },
+        select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } },
       });
       suggestions = [...suggestions, ...otherSuggestions];
     }
@@ -151,7 +159,7 @@ export const getFollowers = async (req: Request, res: Response, next: NextFuncti
       where: { followingId: req.user.id },
       include: {
         follower: {
-          select: { id: true, name: true, username: true, neighborhood: { select: { name: true } } }
+          select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -173,7 +181,7 @@ export const getFollowing = async (req: Request, res: Response, next: NextFuncti
       where: { followerId: req.user.id },
       include: {
         following: {
-          select: { id: true, name: true, username: true, neighborhood: { select: { name: true } } }
+          select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -219,7 +227,7 @@ export const getPublicProfile = async (req: Request, res: Response, next: NextFu
       where: { username },
       select: {
         id: true,
-        name: true,
+        displayName: true,
         username: true,
         bio: true,
         role: true,
@@ -285,7 +293,7 @@ export const getPublicProfilePosts = async (req: Request, res: Response, next: N
     const posts = await prisma.post.findMany({
       where: { userId },
       include: {
-        user: { select: { name: true, username: true } },
+        user: { select: { displayName: true, username: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: { select: { type: true, userId: true } },
@@ -298,10 +306,10 @@ export const getPublicProfilePosts = async (req: Request, res: Response, next: N
     const shares = await prisma.share.findMany({
       where: { userId },
       include: {
-        user: { select: { name: true, username: true } },
+        user: { select: { displayName: true, username: true } },
         post: {
           include: {
-            user: { select: { name: true, username: true } },
+            user: { select: { displayName: true, username: true } },
             category: { select: { name: true } },
             neighborhood: { select: { name: true } },
             votes: { select: { type: true, userId: true } },
@@ -329,7 +337,7 @@ export const getPublicProfilePosts = async (req: Request, res: Response, next: N
       timeline.push({
         ...share.post,
         feedId: `share-${share.id}`,
-        sharedBy: share.user.name,
+        sharedBy: share.user.displayName,
         shareCount: share.post.shares.length,
         activityDate: share.createdAt,
         _isShare: true,
@@ -354,6 +362,116 @@ export const getPublicProfilePosts = async (req: Request, res: Response, next: N
     });
 
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update user profile (bio/displayName)
+ * @route   PATCH /api/users/profile
+ * @access  Private
+ */
+export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.user.id;
+    const { bio, displayName } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { nameLastUpdatedAt: true, displayName: true }
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const dataToUpdate: any = {};
+
+    if (bio !== undefined) {
+      dataToUpdate.bio = bio;
+    }
+
+    if (displayName && displayName !== user.displayName) {
+      // Check cooldown
+      if (user.nameLastUpdatedAt) {
+        const now = new Date();
+        const diff = now.getTime() - user.nameLastUpdatedAt.getTime();
+        const daysDiff = diff / (1000 * 60 * 60 * 24);
+        if (daysDiff < 28) {
+          const remainingDays = Math.ceil(28 - daysDiff);
+          res.status(400).json({ 
+            message: `You can update your name in ${remainingDays} days.`,
+            remainingDays 
+          });
+          return;
+        }
+      }
+      dataToUpdate.displayName = displayName;
+      dataToUpdate.nameLastUpdatedAt = new Date();
+    }
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      res.status(400).json({ message: "No changes provided" });
+      return;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: dataToUpdate,
+      select: {
+        id: true,
+        displayName: true,
+        username: true,
+        bio: true,
+        nameLastUpdatedAt: true,
+        passwordLastUpdatedAt: true
+      }
+    });
+
+    res.json({ message: "Profile updated successfully", user: updatedUser });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update user password
+ * @route   PATCH /api/users/password
+ * @access  Private
+ */
+export const updatePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ message: "Please provide current and new password" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+      res.status(401).json({ message: "Invalid current password" });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        passwordLastUpdatedAt: new Date()
+      }
+    });
+
+    res.json({ message: "Password updated successfully" });
   } catch (error) {
     next(error);
   }

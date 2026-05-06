@@ -43,11 +43,13 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       where: { id: decoded.userId },
       select: {
         id: true,
-        name: true,
+        displayName: true,
         email: true,
         role: true,
         status: true,
         neighborhoodId: true,
+        nameLastUpdatedAt: true,
+        passwordLastUpdatedAt: true,
         createdAt: true
       }
     });

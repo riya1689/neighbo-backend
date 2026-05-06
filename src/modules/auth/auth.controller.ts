@@ -10,9 +10,9 @@ import generateToken from "../../utils/generateToken.js";
  */
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, email, password, neighborhoodId } = req.body;
+    const { displayName, email, password, neighborhoodId } = req.body;
 
-    if (!name || !email || !password || !neighborhoodId) {
+    if (!displayName || !email || !password || !neighborhoodId) {
       res.status(400).json({ message: "Please provide all required fields" });
       return;
     }
@@ -42,7 +42,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Generate unique username
-    let baseUsername = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    let baseUsername = displayName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     if (!baseUsername) baseUsername = 'user';
     
     let username = baseUsername;
@@ -62,7 +62,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     // Create user
     const user = await prisma.user.create({
       data: {
-        name,
+        displayName,
         email,
         username,
         password: hashedPassword,
@@ -70,7 +70,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       },
       select: {
         id: true,
-        name: true,
+        displayName: true,
         email: true,
         username: true,
         role: true,

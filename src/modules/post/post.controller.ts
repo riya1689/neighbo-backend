@@ -29,7 +29,7 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
         categoryId,
       },
       include: {
-        user: { select: { name: true } },
+        user: { select: { displayName: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }
@@ -53,7 +53,7 @@ export const getAllPosts = async (req: Request, res: Response, next: NextFunctio
     const posts = await prisma.post.findMany({
       where: categoryId ? { categoryId: String(categoryId) } : {},
       include: {
-        user: { select: { name: true, username: true } },
+        user: { select: { displayName: true, username: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: true,
@@ -131,7 +131,7 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
       take: 100,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { name: true } },
+        user: { select: { displayName: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: { select: { type: true, userId: true } },
@@ -147,10 +147,10 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
       take: 50,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { name: true } },
+        user: { select: { displayName: true } },
         post: {
           include: {
-            user: { select: { name: true } },
+            user: { select: { displayName: true } },
             category: { select: { name: true } },
             neighborhood: { select: { name: true } },
             votes: { select: { type: true, userId: true } },
@@ -178,7 +178,7 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
       candidateList.push({
          ...share.post,
          feedId: `share-${share.id}`,
-         sharedBy: share.user.name,
+         sharedBy: share.user.displayName,
          shareCount: share.post.shares.length,
          activityDate: share.createdAt,
          _isShare: true,
@@ -272,11 +272,11 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
           { content: { contains: queryStr, mode: "insensitive" } },
           { category: { name: { contains: queryStr, mode: "insensitive" } } },
           { neighborhood: { name: { contains: queryStr, mode: "insensitive" } } },
-          { user: { name: { contains: queryStr, mode: "insensitive" } } },
+          { user: { displayName: { contains: queryStr, mode: "insensitive" } } },
         ],
       },
       include: {
-        user: { select: { name: true } },
+        user: { select: { displayName: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: true,
@@ -319,7 +319,7 @@ export const getTrendingPosts = async (req: Request, res: Response, next: NextFu
         createdAt: { gte: sevenDaysAgo }
       },
       include: {
-        user: { select: { name: true, username: true } },
+        user: { select: { displayName: true, username: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: true,
@@ -384,7 +384,7 @@ export const sharePost = async (req: Request, res: Response, next: NextFunction)
       await prisma.notification.create({
         data: {
           userId: post.userId,
-          message: `${req.user.name} shared your post`,
+          message: `${req.user.displayName} shared your post`,
           type: "SHARE",
           link: `/posts/${postId}`
         }

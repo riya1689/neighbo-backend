@@ -13,10 +13,10 @@ export const getPostComments = async (req: Request, res: Response, next: NextFun
     const comments = await prisma.comment.findMany({
       where: { postId, parentId: null }, // Fetch top-level comments
       include: {
-        user: { select: { id: true, name: true } },
+        user: { select: { id: true, displayName: true } },
         replies: {
           include: {
-            user: { select: { id: true, name: true } }
+            user: { select: { id: true, displayName: true } }
           },
           orderBy: { createdAt: "asc" }
         }
@@ -65,14 +65,14 @@ export const createComment = async (req: Request, res: Response, next: NextFunct
         parentId: parentId || null
       },
       include: {
-        user: { select: { name: true } }
+        user: { select: { displayName: true } }
       }
     });
 
     // Notify post owner or parent comment owner
     let notifyUserId = post.userId;
     let notificationType: "COMMENT" | "REPLY" = "COMMENT";
-    let message = `${req.user.name} commented on your post: "${post.title.substring(0, 20)}..."`;
+    let message = `${req.user.displayName} commented on your post: "${post.title.substring(0, 20)}..."`;
 
     if (parentId) {
       const parentComment = await prisma.comment.findUnique({
@@ -82,7 +82,7 @@ export const createComment = async (req: Request, res: Response, next: NextFunct
       if (parentComment) {
         notifyUserId = parentComment.userId;
         notificationType = "REPLY";
-        message = `${req.user.name} replied to your comment.`;
+        message = `${req.user.displayName} replied to your comment.`;
       }
     }
 
