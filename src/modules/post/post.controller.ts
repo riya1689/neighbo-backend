@@ -48,19 +48,32 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
  */
 export const getAllPosts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const { categoryId } = req.query;
+    
     const posts = await prisma.post.findMany({
+      where: categoryId ? { categoryId: String(categoryId) } : {},
       include: {
-        user: { select: { name: true } },
+        user: { select: { name: true, username: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
+        votes: true,
+        comments: true,
         shares: { select: { id: true } },
       },
       orderBy: { createdAt: "desc" },
     });
-    const mappedPosts = posts.map(post => ({
-      ...post,
-      shareCount: post.shares.length
-    }));
+
+    const mappedPosts = posts.map(post => {
+      const upvotes = post.votes.filter(v => v.type === "UPVOTE").length;
+      const downvotes = post.votes.filter(v => v.type === "DOWNVOTE").length;
+      return {
+        ...post,
+        netVotes: upvotes - downvotes,
+        commentCount: post.comments.length,
+        shareCount: post.shares.length
+      };
+    });
+
     res.json(mappedPosts);
   } catch (error) {
     next(error);
@@ -286,6 +299,58 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
     });
 
     res.json(mappedPosts);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get trending posts
+ * @route   GET /api/posts/trending
+ * @access  Public
+ */
+export const getTrendingPosts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const posts = await prisma.post.findMany({
+      where: {
+        createdAt: { gte: sevenDaysAgo }
+      },
+      include: {
+        user: { select: { name: true, username: true } },
+        category: { select: { name: true } },
+        neighborhood: { select: { name: true } },
+        votes: true,
+        comments: true,
+        shares: { select: { id: true } },
+      },
+      take: 20
+    });
+
+    const scoredPosts = posts.map(post => {
+      const upvotes = post.votes.filter(v => v.type === "UPVOTE").length;
+      const downvotes = post.votes.filter(v => v.type === "DOWNVOTE").length;
+      const netVotes = upvotes - downvotes;
+      const commentCount = post.comments.length;
+      const shareCount = post.shares.length;
+      
+      // Scored by activity
+      const score = (upvotes * 2) + commentCount + (shareCount * 1.5);
+
+      return {
+        ...post,
+        netVotes,
+        commentCount,
+        shareCount,
+        _score: score
+      };
+    });
+
+    scoredPosts.sort((a, b) => b._score - a._score);
+
+    res.json(scoredPosts);
   } catch (error) {
     next(error);
   }
