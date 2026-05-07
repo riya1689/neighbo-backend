@@ -15,6 +15,16 @@ import paymentRoutes from "../modules/payment/payment.routes.js";
 
 const router: Router = express.Router(); // TS Change: Explicitly typed as Router
 
+// Root route for /api
+router.get("/", (req, res) => {
+  res.json({
+    status: "success",
+    message: "Welcome to Neighbo API",
+    version: "1.0.0"
+  });
+});
+
+
 router.use("/health", healthRoutes);
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
