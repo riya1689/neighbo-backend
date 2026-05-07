@@ -11,7 +11,7 @@ export const getPostComments = async (req: Request, res: Response, next: NextFun
     const { postId } = req.params;
 
     const comments = await prisma.comment.findMany({
-      where: { postId, parentId: null }, // Fetch top-level comments
+      where: { postId: postId as string, parentId: null }, // Fetch top-level comments
       include: {
         user: { select: { id: true, displayName: true } },
         replies: {
@@ -48,7 +48,7 @@ export const createComment = async (req: Request, res: Response, next: NextFunct
 
     // Check if post exists
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: { id: postId as string },
       select: { userId: true, title: true }
     });
 
@@ -61,7 +61,7 @@ export const createComment = async (req: Request, res: Response, next: NextFunct
       data: {
         content,
         userId,
-        postId,
+        postId: postId as string,
         parentId: parentId || null
       },
       include: {

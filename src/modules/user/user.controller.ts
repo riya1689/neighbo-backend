@@ -60,7 +60,7 @@ export const toggleFollow = async (req: Request, res: Response, next: NextFuncti
     }
 
     // Check if target user exists
-    const targetUser = await prisma.user.findUnique({ where: { id: followingId } });
+    const targetUser = await prisma.user.findUnique({ where: { id : followingId as string } });
     if (!targetUser) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -68,25 +68,32 @@ export const toggleFollow = async (req: Request, res: Response, next: NextFuncti
 
     const existingFollow = await prisma.follow.findUnique({
       where: {
-        followerId_followingId: { followerId, followingId },
+        followerId_followingId: { followerId: followerId as string, 
+        followingId: followingId as string 
+       },
+       
       },
     });
 
     if (existingFollow) {
       // Unfollow
       await prisma.follow.delete({
-        where: { followerId_followingId: { followerId, followingId } },
+        where: { followerId_followingId: { followerId : followerId as string,
+           followingId: followingId as string  }
+           },
       });
       res.json({ message: "Unfollowed successfully", isFollowing: false });
     } else {
       // Follow
       await prisma.$transaction([
         prisma.follow.create({
-          data: { followerId, followingId },
+          data: { 
+            followerId: followerId as string, 
+            followingId: followingId as string  },
         }),
         prisma.notification.create({
           data: {
-            userId: followingId,
+            userId: followingId as string,
             type: "FOLLOW",
             message: `${req.user.displayName || "Someone"} started following you.`,
           },
@@ -224,7 +231,7 @@ export const getPublicProfile = async (req: Request, res: Response, next: NextFu
     const { username } = req.params;
 
     const user = await prisma.user.findUnique({
-      where: { username },
+      where: { username: username as string },
       select: {
         id: true,
         displayName: true,
@@ -278,7 +285,7 @@ export const getPublicProfilePosts = async (req: Request, res: Response, next: N
     const { username } = req.params;
 
     const user = await prisma.user.findUnique({
-      where: { username },
+      where: { username: username as string },
       select: { id: true }
     });
 

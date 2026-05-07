@@ -44,14 +44,21 @@ export const getUnreadCount = async (req: Request, res: Response, next: NextFunc
  */
 export const markAsRead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const userId = req.user.id;
 
+    const existing = await prisma.notification.findUnique({ where: { id } });
+
+    if (!existing || existing.userId !== userId) {
+      // Explicitly return 403 Forbidden if the user doesn't own this notification
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+    // FIX: STEP 2 - Perform the update using only the unique primary key 'id'
     const notification = await prisma.notification.update({
-      where: { id, userId },
+      where: { id },
       data: { isRead: true }
     });
-
     res.json(notification);
   } catch (error) {
     next(error);

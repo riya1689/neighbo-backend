@@ -2,7 +2,7 @@ import prisma from "./src/config/prisma.js";
 
 async function main() {
   console.log("Seeding neighborhoods...");
-  
+
   const neighborhoods = [
     { name: "Dhanmondi", description: "Residential area in Dhaka" },
     { name: "Banani", description: "Upscale residential and commercial area" },

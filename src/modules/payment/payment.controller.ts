@@ -7,16 +7,17 @@ import {
   SSL_SUCCESS_URL,
   SSL_FAIL_URL,
   SSL_CANCEL_URL,
+  FRONTEND_URL,
 } from "../../config/env.js";
 
 // @ts-ignore – sslcommerz-lts has no type declarations
 import SSLCommerzPayment from "sslcommerz-lts";
 
-/* ────────────────────────────────────────────
-   INITIATE PAYMENT
-   POST /api/payments/initiate
-   Body: { type: "PLAN" | "UNLOCK", planId?, postId? }
-   ──────────────────────────────────────────── */
+/**
+ * @desc    Initiate SSLCommerz payment session
+ * @route   POST /api/payments/initiate
+ * @access  Private (Auth)
+ */
 export const initiatePayment = async (
   req: Request,
   res: Response,
@@ -25,6 +26,8 @@ export const initiatePayment = async (
   try {
     const userId = req.user.id;
     const { type, planId, postId } = req.body;
+
+    console.log(`Payment initiation started: type=${type}, planId=${planId}, postId=${postId}, userId=${userId}`);
 
     if (!type || !["PLAN", "UNLOCK"].includes(type)) {
       res.status(400).json({ message: "Invalid payment type. Must be PLAN or UNLOCK." });
@@ -43,6 +46,7 @@ export const initiatePayment = async (
 
       const plan = await prisma.premiumPlan.findUnique({ where: { id: planId } });
       if (!plan) {
+        console.error(`Plan not found: ${planId}`);
         res.status(404).json({ message: "Plan not found." });
         return;
       }
@@ -51,7 +55,7 @@ export const initiatePayment = async (
       productName = plan.name;
       tran_id = `NEIGHBO_PLAN_${Date.now()}_${userId}`;
 
-      // Create pending AdminRevenue record
+      console.log(`Creating AdminRevenue record for plan: ${productName}, amount: ${amount}`);
       await prisma.adminRevenue.create({
         data: {
           userId,
@@ -74,6 +78,7 @@ export const initiatePayment = async (
       });
 
       if (!post) {
+        console.error(`Post not found: ${postId}`);
         res.status(404).json({ message: "Post not found." });
         return;
       }
@@ -101,7 +106,7 @@ export const initiatePayment = async (
       productName = `Unlock: ${post.title}`;
       tran_id = `NEIGHBO_UNLOCK_${Date.now()}_${postId}_${userId}`;
 
-      // Create pending CreatorEarning record
+      console.log(`Creating CreatorEarning record for post: ${post.title}, amount: ${amount}`);
       await prisma.creatorEarning.create({
         data: {
           creatorId: post.userId,
@@ -120,6 +125,7 @@ export const initiatePayment = async (
       select: { displayName: true, email: true, neighborhood: { select: { name: true } } },
     });
 
+    console.log(`Initializing SSLCommerz with storeId=${SSL_STORE_ID}, sandbox=${SSL_IS_SANDBOX}`);
     const sslcz = new SSLCommerzPayment(SSL_STORE_ID, SSL_STORE_PASS, SSL_IS_SANDBOX);
 
     const data = {
@@ -139,56 +145,55 @@ export const initiatePayment = async (
       cus_add1: user?.neighborhood?.name || "Neighbo Community",
       cus_city: "Dhaka",
       cus_country: "Bangladesh",
-      cus_phone: "N/A",
+      cus_phone: "01700000000",
     };
 
+    console.log(`Calling SSLCommerz init with data:`, JSON.stringify(data, null, 2));
     const apiResponse = await sslcz.init(data);
+    console.log(`SSLCommerz response:`, JSON.stringify(apiResponse, null, 2));
 
     if (apiResponse?.GatewayPageURL) {
       res.json({ url: apiResponse.GatewayPageURL, tran_id });
+    } else if (apiResponse?.status === "FAILED") {
+      console.error(`SSLCommerz initialization failed: ${apiResponse.failedreason}`);
+      res.status(400).json({ 
+        message: "Payment gateway initialization failed.", 
+        reason: apiResponse.failedreason 
+      });
     } else {
+      console.error(`SSLCommerz init returned unknown response:`, apiResponse);
       res.status(500).json({ message: "Failed to initialize payment gateway." });
     }
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    console.error(`Payment initiation error:`, error);
+    res.status(500).json({ message: "Internal server error during payment initiation.", error: error.message });
   }
 };
 
-/* ────────────────────────────────────────────
-   SUCCESS CALLBACK (IPN from SSLCommerz)
-   POST /api/payments/success
-   ──────────────────────────────────────────── */
-export const paymentSuccess = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+/**
+ * @desc    SSLCommerz Success Callback (IPN or Redirect)
+ * @route   POST /api/payments/success
+ */
+export const paymentSuccess = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { tran_id, val_id, bank_tran_id, card_type } = req.body;
+    const { tran_id, status, bank_tran_id, val_id, amount, card_type, store_amount } = req.body ;
 
-    if (!tran_id) {
-      res.status(400).json({ message: "Missing transaction ID." });
-      return;
-    }
+    console.log(`Payment success callback for tran_id: ${tran_id}, status: ${status}`);
 
-    // Validate with SSLCommerz
-    const sslcz = new SSLCommerzPayment(SSL_STORE_ID, SSL_STORE_PASS, SSL_IS_SANDBOX);
-    const validation = await sslcz.validate({ val_id });
-
-    if (validation?.status !== "VALID" && validation?.status !== "VALIDATED") {
-      // Mark as failed
+    if (status !== "VALID" && status !== "VALIDATED") {
+      // If it's not a success status from SSLCommerz
       if (tran_id.startsWith("NEIGHBO_PLAN_")) {
-        await prisma.adminRevenue.updateMany({
+        await prisma.adminRevenue.update({
           where: { tranId: tran_id },
           data: { status: "FAILED" },
         });
-      } else {
-        await prisma.creatorEarning.updateMany({
+      } else if (tran_id.startsWith("NEIGHBO_UNLOCK_")) {
+        await prisma.creatorEarning.update({
           where: { tranId: tran_id },
           data: { status: "FAILED" },
         });
       }
-      res.redirect(`http://localhost:3000/payment/fail?tran_id=${tran_id}`);
+      res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${tran_id}`);
       return;
     }
 
@@ -198,30 +203,18 @@ export const paymentSuccess = async (
       // ──── PREMIUM PLAN PURCHASE ────
       const revenue = await prisma.adminRevenue.findUnique({ where: { tranId: tran_id } });
       if (!revenue || revenue.status === "COMPLETED") {
-        res.redirect(`http://localhost:3000/payment/success?tran_id=${tran_id}`);
+        res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`);
         return;
       }
 
-      // Determine plan duration from planType name
-      const plan = await prisma.premiumPlan.findFirst({
-        where: { name: revenue.planType },
-      });
+      const plan = await prisma.premiumPlan.findFirst({ where: { name: revenue.planType } });
+      const duration = plan?.duration || 30;
 
-      const durationDays = plan?.duration || 90;
       const startDate = new Date();
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + durationDays);
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + duration);
 
-      // Determine PlanType enum
-      let planTypeEnum: "THREE_MONTHS" | "SIX_MONTHS" | "ONE_YEAR" = "THREE_MONTHS";
-      if (durationDays > 300) planTypeEnum = "ONE_YEAR";
-      else if (durationDays > 100) planTypeEnum = "SIX_MONTHS";
-
-      // Calculate purchaseNo
-      const purchaseNo = await prisma.subscription.count({
-        where: { userId: revenue.userId },
-      });
-
+      // Atomic update: Mark revenue COMPLETED, Create Subscription, Update User Status
       await prisma.$transaction([
         prisma.adminRevenue.update({
           where: { tranId: tran_id },
@@ -234,20 +227,31 @@ export const paymentSuccess = async (
         prisma.subscription.create({
           data: {
             userId: revenue.userId,
-            planType: planTypeEnum,
+            planType: (plan?.name as any) || "THREE_MONTHS",
             startDate,
             endDate,
             isActive: true,
           },
         }),
+        prisma.user.update({
+          where: { id: revenue.userId },
+          data: { status: "PREMIUM" },
+        }),
+        prisma.notification.create({
+          data: {
+            userId: revenue.userId,
+            type: "PAYMENT",
+            message: `Your ${revenue.planType} is now active until ${endDate.toLocaleDateString()}.`,
+          },
+        }),
       ]);
 
-      res.redirect(`http://localhost:3000/payment/success?tran_id=${tran_id}`);
+      res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`);
     } else if (tran_id.startsWith("NEIGHBO_UNLOCK_")) {
       // ──── POST UNLOCK ────
       const earning = await prisma.creatorEarning.findUnique({ where: { tranId: tran_id } });
       if (!earning || earning.status === "COMPLETED") {
-        res.redirect(`http://localhost:3000/payment/success?tran_id=${tran_id}`);
+        res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`);
         return;
       }
 
@@ -270,201 +274,107 @@ export const paymentSuccess = async (
           data: {
             userId: earning.creatorId,
             type: "PAYMENT",
-            message: `Someone unlocked your premium post! You earned ৳${earning.amount} BDT.`,
-            link: `/payment/success?tran_id=${tran_id}`,
+            message: `Someone unlocked your premium post for ৳${earning.amount}.`,
           },
         }),
       ]);
 
-      res.redirect(`http://localhost:3000/payment/success?tran_id=${tran_id}`);
+      res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`);
     } else {
-      res.redirect(`http://localhost:3000/payment/fail?tran_id=${tran_id}`);
+      res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${tran_id}`);
     }
   } catch (error) {
     next(error);
   }
 };
 
-/* ────────────────────────────────────────────
-   FAIL CALLBACK
-   POST /api/payments/fail
-   ──────────────────────────────────────────── */
-export const paymentFail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+/**
+ * @desc    SSLCommerz Fail Callback
+ */
+export const paymentFail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { tran_id } = req.body;
+    console.log(`Payment failed for tran_id: ${tran_id}`);
 
     if (tran_id) {
       if (tran_id.startsWith("NEIGHBO_PLAN_")) {
-        await prisma.adminRevenue.updateMany({
-          where: { tranId: tran_id, status: "PENDING" },
+        await prisma.adminRevenue.update({
+          where: { tranId: tran_id },
           data: { status: "FAILED" },
         });
       } else if (tran_id.startsWith("NEIGHBO_UNLOCK_")) {
-        await prisma.creatorEarning.updateMany({
-          where: { tranId: tran_id, status: "PENDING" },
+        await prisma.creatorEarning.update({
+          where: { tranId: tran_id },
           data: { status: "FAILED" },
         });
       }
     }
 
-    res.redirect(`http://localhost:3000/payment/fail?tran_id=${tran_id || ""}`);
+    res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${tran_id || ""}`);
   } catch (error) {
     next(error);
   }
 };
 
-/* ────────────────────────────────────────────
-   CANCEL CALLBACK
-   POST /api/payments/cancel
-   ──────────────────────────────────────────── */
-export const paymentCancel = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+/**
+ * @desc    SSLCommerz Cancel Callback
+ */
+export const paymentCancel = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { tran_id } = req.body;
+    console.log(`Payment cancelled for tran_id: ${tran_id}`);
 
     if (tran_id) {
       if (tran_id.startsWith("NEIGHBO_PLAN_")) {
-        await prisma.adminRevenue.updateMany({
-          where: { tranId: tran_id, status: "PENDING" },
+        await prisma.adminRevenue.update({
+          where: { tranId: tran_id },
           data: { status: "FAILED" },
         });
       } else if (tran_id.startsWith("NEIGHBO_UNLOCK_")) {
-        await prisma.creatorEarning.updateMany({
-          where: { tranId: tran_id, status: "PENDING" },
+        await prisma.creatorEarning.update({
+          where: { tranId: tran_id },
           data: { status: "FAILED" },
         });
       }
     }
 
-    res.redirect(`http://localhost:3000/payment/cancel`);
+    res.redirect(`${FRONTEND_URL}/payment/cancel`);
   } catch (error) {
     next(error);
   }
 };
 
-/* ────────────────────────────────────────────
-   VERIFY TRANSACTION (user-scoped)
-   GET /api/payments/verify/:tranId
-   ──────────────────────────────────────────── */
-export const verifyTransaction = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+/**
+ * @desc    Verify transaction status (client-side check)
+ * @route   GET /api/payments/verify/:tranId
+ */
+export const verifyTransaction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { tranId } = req.params;
+    const { tranId } = req.params as { tranId: string };
     const userId = req.user.id;
 
-    if (tranId.startsWith("NEIGHBO_PLAN_")) {
-      const revenue = await prisma.adminRevenue.findUnique({
-        where: { tranId },
-        include: {
-          user: {
-            select: {
-              displayName: true,
-              username: true,
-              email: true,
-              neighborhood: { select: { name: true } },
-            },
-          },
-        },
-      });
+    let transaction: any;
 
-      if (!revenue) {
-        res.status(404).json({ message: "Transaction not found." });
-        return;
-      }
-
-      // Ownership check
-      if (revenue.userId !== userId) {
-        res.status(403).json({ message: "You do not have access to this transaction." });
-        return;
-      }
-
-      // Calculate purchaseNo
-      const purchaseNo = await prisma.subscription.count({
-        where: { userId: revenue.userId },
-      });
-
-      res.json({
-        type: "PLAN",
-        tranId: revenue.tranId,
-        sslTranId: revenue.sslTranId,
-        planType: revenue.planType,
-        amount: revenue.amount,
-        status: revenue.status,
-        paidAt: revenue.paidAt,
-        createdAt: revenue.createdAt,
-        purchaseNo,
-        buyer: {
-          displayName: revenue.user.displayName,
-          username: revenue.user.username,
-          email: revenue.user.email,
-          neighborhood: revenue.user.neighborhood?.name || "N/A",
-        },
-      });
-    } else if (tranId.startsWith("NEIGHBO_UNLOCK_")) {
-      const earning = await prisma.creatorEarning.findUnique({
-        where: { tranId },
-        include: {
-          payer: {
-            select: {
-              displayName: true,
-              username: true,
-              email: true,
-              neighborhood: { select: { name: true } },
-            },
-          },
-          creator: {
-            select: { displayName: true, username: true },
-          },
-          post: {
-            select: { title: true },
-          },
-        },
-      });
-
-      if (!earning) {
-        res.status(404).json({ message: "Transaction not found." });
-        return;
-      }
-
-      // Ownership check — payer or creator can view
-      if (earning.payerId !== userId && earning.creatorId !== userId) {
-        res.status(403).json({ message: "You do not have access to this transaction." });
-        return;
-      }
-
-      res.json({
-        type: "UNLOCK",
-        tranId: earning.tranId,
-        sslTranId: earning.sslTranId,
-        postTitle: earning.post.title,
-        amount: earning.amount,
-        status: earning.status,
-        paidAt: earning.paidAt,
-        createdAt: earning.createdAt,
-        buyer: {
-          displayName: earning.payer.displayName,
-          username: earning.payer.username,
-          email: earning.payer.email,
-          neighborhood: earning.payer.neighborhood?.name || "N/A",
-        },
-        creator: {
-          displayName: earning.creator.displayName,
-          username: earning.creator.username,
-        },
+    if (tranId && tranId.startsWith("NEIGHBO_PLAN_")) {
+      transaction = await prisma.adminRevenue.findUnique({
+        where: { tranId: tranId as string },
+        include: { user: { select: { displayName: true, email: true } } },
       });
     } else {
-      res.status(400).json({ message: "Invalid transaction ID format." });
+      transaction = await prisma.creatorEarning.findUnique({
+        where: { tranId: tranId as string },
+        include: {
+          post: true, // Assuming relation name is post in schema
+        },
+      });
     }
+
+    if (!transaction) {
+      res.status(404).json({ message: "Transaction not found." });
+      return;
+    }
+
+    res.json(transaction);
   } catch (error) {
     next(error);
   }

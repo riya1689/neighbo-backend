@@ -2,7 +2,7 @@ import { Router } from "express";
 import { createPost, getAllPosts, logImpressions, getAlgorithmicFeed, searchPosts, sharePost, getTrendingPosts } from "./post.controller.js";
 import { protect } from "../../middlewares/authMiddleware.js";
 
-const router = Router();
+const router: Router = Router();
 
 router.get("/", getAllPosts);
 router.get("/trending", getTrendingPosts);

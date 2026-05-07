@@ -248,6 +248,7 @@ enum Role {
 enum UserStatus {
   ACTIVE
   SUSPENDED
+  PREMIUM
 }
 
 enum VoteType {

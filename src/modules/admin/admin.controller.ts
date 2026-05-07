@@ -95,7 +95,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
  */
 export const updateUserStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status } = req.body;
 
     if (!["ACTIVE", "SUSPENDED"].includes(status)) {
@@ -158,7 +158,7 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
  */
 export const deleteCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.category.delete({ where: { id } });
     res.json({ message: "Category deleted" });
   } catch (error) {
@@ -210,7 +210,7 @@ export const createNeighborhood = async (req: Request, res: Response, next: Next
  */
 export const deleteNeighborhood = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.neighborhood.delete({ where: { id } });
     res.json({ message: "Neighborhood deleted" });
   } catch (error) {
@@ -256,7 +256,7 @@ export const createPlan = async (req: Request, res: Response, next: NextFunction
 
 export const deletePlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.premiumPlan.delete({ where: { id } });
     res.json({ message: "Plan deleted" });
   } catch (error) {
