@@ -8,7 +8,7 @@ import prisma from "../../config/prisma.js";
  */
 export const handleVote = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { postId } = req.params;
+    const postId = req.params.postId as string;
     const { type } = req.body; // UPVOTE or DOWNVOTE
     const userId = req.user.id;
 
@@ -60,7 +60,7 @@ export const handleVote = async (req: Request, res: Response, next: NextFunction
           data: {
             userId: post.userId,
             type: "VOTE",
-            message: `${req.user.name} ${type.toLowerCase()}d your post: "${post.title.substring(0, 20)}..."`,
+            message: `${req.user.displayName} ${type.toLowerCase()}d your post: "${post.title.substring(0, 20)}..."`,
             link: `/posts/${postId}`
           }
         });
