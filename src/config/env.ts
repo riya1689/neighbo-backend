@@ -11,13 +11,21 @@ const rootDir: string = path.resolve(__dirname, "../../");
 const envPath: string = path.join(rootDir, ".env");
 
 // 🛡️ Safety Check: Does the file even exist where we think it does?
+// if (!fs.existsSync(envPath)) {
+//   console.error(`❌ ERROR: .env file not found at: ${envPath}`);
+// } else {
+//   const result = dotenv.config({ path: envPath });
+//   if (result.error) {
+//     console.error("❌ ERROR: Failed to parse .env file:", result.error);
+//   }
+// }
+
 if (!fs.existsSync(envPath)) {
-  console.error(`❌ ERROR: .env file not found at: ${envPath}`);
-} else {
-  const result = dotenv.config({ path: envPath });
-  if (result.error) {
-    console.error("❌ ERROR: Failed to parse .env file:", result.error);
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(`⚠️ Warning: .env file not found at: ${envPath}`);
   }
+} else {
+  dotenv.config({ path: envPath });
 }
 
 /**
