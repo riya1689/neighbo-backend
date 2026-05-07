@@ -11,7 +11,14 @@ import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { ALLOWED_ORIGINS } from "./config/env.js";
 
 const app: Application = express(); // TS Change: Explicit type Application
-
+app.get("/", (req: Request, res: Response) => {
+  res.json({
+    status: "success",
+    message: "Neighbo backend is running!",
+    api_health: "/api/health",
+    timestamp: new Date().toISOString()
+  });
+});
 // Security/UX defaults
 app.use(helmet());
 // TS Change: Added types for CORS origin callback
