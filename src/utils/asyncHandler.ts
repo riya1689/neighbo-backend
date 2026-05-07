@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction, RequestHandler } from "express"; // TS Change: Imported Express types
+import { type Request, type Response, type NextFunction, type RequestHandler } from "express"; // TS Change: Imported Express types
 
 /**
  * Wrap an async route handler so Express forwards errors to error middleware.
