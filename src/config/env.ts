@@ -70,7 +70,7 @@ export function getRequiredEnv(name: string): string {
 }
 
 // TS Change: Explicit type string[]
-export const ALLOWED_ORIGINS: string[] = process.env.ALLOWED_ORIGINS
+export const ALLOWED_ORIGINS: string[] = (process.env.ALLOWED_ORIGINS || "http://localhost:3000")
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim().replace(/^["']|["']$/g, ""))
   : ['http://localhost:3000'];
 
