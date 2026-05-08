@@ -26,3 +26,7 @@ src/generated/
 vercel/
 .vercel
 .env*.local
+.env.local
+.env.local.development.local
+.env.local.production.local
+.env.local.test.local
