@@ -137,7 +137,7 @@ export const paymentSuccess = async (req: Request, res: Response, next: NextFunc
           prisma.subscription.create({ 
             data: { 
               userId: revenue.userId, 
-              planType: (plan?.name as any) || "THREE_MONTHS", 
+              planType: plan?.name || revenue.planType, 
               startDate: new Date(), 
               endDate, 
               isActive: true 
@@ -151,7 +151,7 @@ export const paymentSuccess = async (req: Request, res: Response, next: NextFunc
       }
     } 
     // 🔄 FIX: Check for "U_" instead of "NEIGHBO_UNLOCK_"
-    else if (tran_id.startsWith("U_")) {
+    else if (tran_id.startsWith("U_") || tran_id.startsWith("NEIGHBO_UNLOCK_")) {
       const earning = await prisma.creatorEarning.findUnique({ where: { tranId: tran_id } });
       
       if (earning && earning.status !== "COMPLETED") {
@@ -166,24 +166,51 @@ export const paymentSuccess = async (req: Request, res: Response, next: NextFunc
         ]);
       }
     }
-    res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`);
+
+    return res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`) as any;
   } catch (error) {
     console.error("Payment Success Callback Error:", error);
     // Even if database fails, redirect to frontend so user isn't stuck on a JSON error page
-    res.redirect(`${FRONTEND_URL}/payment/fail?error=internal_server_error`);
+    return res.redirect(`${FRONTEND_URL}/payment/fail?error=internal_server_error`) as any;
   }
 };
 
 export const paymentFail = async (req: Request, res: Response) => {
-  const tranId = req.body.tran_id || "";
-  console.log(`Payment failed for tran_id: ${tranId}`);
-  res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${tranId}`);
+  const tranId = req.body?.tran_id || "";
+  console.log(`Payment failed: ${tranId}`);
+
+  if (tranId) {
+    try {
+      if (tranId.startsWith("P_") || tranId.startsWith("NEIGHBO_PLAN_")) {
+        await prisma.adminRevenue.updateMany({ where: { tranId, status: "PENDING" }, data: { status: "FAILED" } });
+      } else if (tranId.startsWith("U_") || tranId.startsWith("NEIGHBO_UNLOCK_")) {
+        await prisma.creatorEarning.updateMany({ where: { tranId, status: "PENDING" }, data: { status: "FAILED" } });
+      }
+    } catch (e) {
+      console.error("Failed to update status on fail:", e);
+    }
+  }
+
+  return res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${tranId}`) as any;
 };
 
 export const paymentCancel = async (req: Request, res: Response) => {
-  const tranId = req.body.tran_id || "";
+  const tranId = req.body?.tran_id || "";
   console.log(`Payment cancelled for tran_id: ${tranId}`);
-  res.redirect(`${FRONTEND_URL}/payment/cancel?tran_id=${tranId}`);
+
+  if (tranId) {
+    try {
+      if (tranId.startsWith("P_") || tranId.startsWith("NEIGHBO_PLAN_")) {
+        await prisma.adminRevenue.updateMany({ where: { tranId, status: "PENDING" }, data: { status: "FAILED" } });
+      } else if (tranId.startsWith("U_") || tranId.startsWith("NEIGHBO_UNLOCK_")) {
+        await prisma.creatorEarning.updateMany({ where: { tranId, status: "PENDING" }, data: { status: "FAILED" } });
+      }
+    } catch (e) {
+      console.error("Failed to update status on cancel:", e);
+    }
+  }
+
+  return res.redirect(`${FRONTEND_URL}/payment/cancel?tran_id=${tranId}`) as any;
 };
 
 export const verifyTransaction = async (req: Request, res: Response) => {

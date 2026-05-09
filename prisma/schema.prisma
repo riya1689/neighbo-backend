@@ -153,7 +153,7 @@ model Invoice {
 
 model Subscription {
   id        String   @id @default(uuid())
-  planType  PlanType
+  planType  String
   startDate DateTime
   endDate   DateTime
   isActive  Boolean  @default(true)
@@ -275,10 +275,4 @@ enum PaymentStatus {
 enum ProductType {
   PREMIUM_PLAN
   CONTENT
-}
-
-enum PlanType {
-  THREE_MONTHS
-  SIX_MONTHS
-  ONE_YEAR
 }
