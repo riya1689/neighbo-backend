@@ -104,52 +104,86 @@ export const initiatePayment = async (req: Request, res: Response, next: NextFun
 
 export const paymentSuccess = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // 🔄 SSLCommerz sends data in the body for POST callbacks
     const { tran_id, val_id } = req.body;
+    console.log(`Success callback received for: ${tran_id}`);
+    if (!tran_id || !val_id) {
+      console.error("Missing tran_id or val_id in success callback", req.body);
+      res.redirect(`${FRONTEND_URL}/payment/fail?message=missing_data`);
+      return;
+    }
     const sslcz = new SSLCommerzPayment(SSL_STORE_ID, SSL_STORE_PASS, SSL_IS_SANDBOX);
     const validationResponse = await sslcz.validate({ val_id });
-
     if (validationResponse.status !== "VALID" && validationResponse.status !== "VALIDATED") {
+      console.error("SSL Validation Failed:", validationResponse);
       res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${tran_id}`);
       return;
     }
-
     const ssl_tran_id = validationResponse.bank_tran_id || val_id;
-
-    if (tran_id.startsWith("NEIGHBO_PLAN_")) {
+    // 🔄 FIX: Check for "P_" instead of "NEIGHBO_PLAN_"
+    if (tran_id.startsWith("P_") || tran_id.startsWith("NEIGHBO_PLAN_")) {
       const revenue = await prisma.adminRevenue.findUnique({ where: { tranId: tran_id } });
-      if (!revenue || revenue.status === "COMPLETED") {
-        res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`);
-        return;
+      
+      if (revenue && revenue.status !== "COMPLETED") {
+        const plan = await prisma.premiumPlan.findFirst({ where: { name: revenue.planType } });
+        const duration = plan?.duration || 30;
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + duration);
+        await prisma.$transaction([
+          prisma.adminRevenue.update({ 
+            where: { tranId: tran_id }, 
+            data: { status: "COMPLETED", sslTranId: ssl_tran_id, paidAt: new Date() } 
+          }),
+          prisma.subscription.create({ 
+            data: { 
+              userId: revenue.userId, 
+              planType: (plan?.name as any) || "THREE_MONTHS", 
+              startDate: new Date(), 
+              endDate, 
+              isActive: true 
+            } 
+          }),
+          prisma.user.update({ 
+            where: { id: revenue.userId }, 
+            data: { status: "PREMIUM" } 
+          }),
+        ]);
       }
-      const plan = await prisma.premiumPlan.findFirst({ where: { name: revenue.planType } });
-      const duration = plan?.duration || 30;
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + duration);
-
-      await prisma.$transaction([
-        prisma.adminRevenue.update({ where: { tranId: tran_id }, data: { status: "COMPLETED", sslTranId: ssl_tran_id, paidAt: new Date() } }),
-        prisma.subscription.create({ data: { userId: revenue.userId, planType: (plan?.name as any) || "THREE_MONTHS", startDate: new Date(), endDate, isActive: true } }),
-        prisma.user.update({ where: { id: revenue.userId }, data: { status: "PREMIUM" } }),
-      ]);
-    } else {
+    } 
+    // 🔄 FIX: Check for "U_" instead of "NEIGHBO_UNLOCK_"
+    else if (tran_id.startsWith("U_")) {
       const earning = await prisma.creatorEarning.findUnique({ where: { tranId: tran_id } });
+      
       if (earning && earning.status !== "COMPLETED") {
         await prisma.$transaction([
-          prisma.creatorEarning.update({ where: { tranId: tran_id }, data: { status: "COMPLETED", sslTranId: ssl_tran_id, paidAt: new Date() } }),
-          prisma.unlockedPost.create({ data: { userId: earning.payerId, postId: earning.postId } }),
+          prisma.creatorEarning.update({ 
+            where: { tranId: tran_id }, 
+            data: { status: "COMPLETED", sslTranId: ssl_tran_id, paidAt: new Date() } 
+          }),
+          prisma.unlockedPost.create({ 
+            data: { userId: earning.payerId, postId: earning.postId } 
+          }),
         ]);
       }
     }
     res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`);
-  } catch (error) { next(error); }
+  } catch (error) {
+    console.error("Payment Success Callback Error:", error);
+    // Even if database fails, redirect to frontend so user isn't stuck on a JSON error page
+    res.redirect(`${FRONTEND_URL}/payment/fail?error=internal_server_error`);
+  }
 };
 
 export const paymentFail = async (req: Request, res: Response) => {
-  res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${req.body.tran_id || ""}`);
+  const tranId = req.body.tran_id || "";
+  console.log(`Payment failed for tran_id: ${tranId}`);
+  res.redirect(`${FRONTEND_URL}/payment/fail?tran_id=${tranId}`);
 };
 
 export const paymentCancel = async (req: Request, res: Response) => {
-  res.redirect(`${FRONTEND_URL}/payment/cancel`);
+  const tranId = req.body.tran_id || "";
+  console.log(`Payment cancelled for tran_id: ${tranId}`);
+  res.redirect(`${FRONTEND_URL}/payment/cancel?tran_id=${tranId}`);
 };
 
 export const verifyTransaction = async (req: Request, res: Response) => {
