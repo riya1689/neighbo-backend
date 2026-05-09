@@ -24,8 +24,13 @@ app.use(helmet());
 // TS Change: Added types for CORS origin callback
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    console.log(`CORS Check - Origin: ${origin}, Allowed: ${ALLOWED_ORIGINS.join(', ')}`);
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    // Dynamically allow SSLCommerz origins for payment callbacks
+    const sslCommerzOrigins = ["https://sandbox.sslcommerz.com", "https://securepay.sslcommerz.com"];
+    const allAllowedOrigins = [...ALLOWED_ORIGINS, ...sslCommerzOrigins];
+
+    console.log(`CORS Check - Origin: ${origin}, Allowed: ${allAllowedOrigins.join(', ')}`);
+    
+    if (!origin || allAllowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log(`CORS Blocked for: ${origin}`);
