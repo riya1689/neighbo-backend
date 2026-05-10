@@ -160,8 +160,10 @@ export const paymentSuccess = async (req: Request, res: Response, next: NextFunc
             where: { tranId: tran_id }, 
             data: { status: "COMPLETED", sslTranId: ssl_tran_id, paidAt: new Date() } 
           }),
-          prisma.unlockedPost.create({ 
-            data: { userId: earning.payerId, postId: earning.postId } 
+          prisma.unlockedPost.upsert({ 
+            where: { userId_postId: { userId: earning.payerId, postId: earning.postId } },
+            update: {},
+            create: { userId: earning.payerId, postId: earning.postId } 
           }),
         ]);
       }
@@ -170,8 +172,9 @@ export const paymentSuccess = async (req: Request, res: Response, next: NextFunc
     return res.redirect(`${FRONTEND_URL}/payment/success?tran_id=${tran_id}`) as any;
   } catch (error) {
     console.error("Payment Success Callback Error:", error);
+    const failedTranId = req.body?.tran_id || "";
     // Even if database fails, redirect to frontend so user isn't stuck on a JSON error page
-    return res.redirect(`${FRONTEND_URL}/payment/fail?error=internal_server_error`) as any;
+    return res.redirect(`${FRONTEND_URL}/payment/fail?error=internal_server_error&tran_id=${failedTranId}`) as any;
   }
 };
 

@@ -277,7 +277,6 @@ export const getPayments = async (req: Request, res: Response, next: NextFunctio
       },
       orderBy: { createdAt: "desc" },
     });
-    res.json(payments);
 
     // Mock/Add plan duration if needed, or fetch from planType if possible
     // Since adminRevenue has planType (string), we can fetch duration from PremiumPlan
