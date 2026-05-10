@@ -18,7 +18,7 @@ export const getStats = async (req: Request, res: Response, next: NextFunction):
     ] = await Promise.all([
       prisma.user.count().catch(() => 0),
       prisma.user.count({ where: { subscriptions: { some: { isActive: true } } } }).catch(() => 0),
-      prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }).catch(() => ({ _sum: { amount: 0 } })),
+      prisma.adminRevenue.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }).catch(() => ({ _sum: { amount: 0 } })),
       prisma.subscription.count().catch(() => 0),
       prisma.category.count().catch(() => 0),
       prisma.neighborhood.count().catch(() => 0),
@@ -271,14 +271,35 @@ export const deletePlan = async (req: Request, res: Response, next: NextFunction
  */
 export const getPayments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const payments = await prisma.payment.findMany({
+    const payments = await prisma.adminRevenue.findMany({
       include: {
         user: { select: { displayName: true, email: true } },
-        invoice: true,
       },
       orderBy: { createdAt: "desc" },
     });
-    res.json(payments);
+     res.json(payments);
+
+    // Mock/Add plan duration if needed, or fetch from planType if possible
+    // Since adminRevenue has planType (string), we can fetch duration from PremiumPlan
+    const plans = await prisma.premiumPlan.findMany();
+    
+    const formattedPayments = payments.map(p => {
+      const planInfo = plans.find(plan => plan.name === p.planType);
+      return {
+        id: p.id,
+        transactionId: p.tranId,
+        amount: p.amount,
+        status: p.status,
+        createdAt: p.createdAt,
+        user: p.user,
+        planName: p.planType,
+        planDuration: planInfo ? `${planInfo.duration} Days` : "N/A",
+        paymentMethod: "SSLCommerz", // Fixed as requested or just simplified
+        invoice: { invoiceNumber: p.invoiceId || "N/A" }
+      };
+    });
+
+    res.json(formattedPayments);
   } catch (error) {
     next(error);
   }

@@ -12,6 +12,7 @@ import voteRoutes from "../modules/vote/vote.routes.js";
 import commentRoutes from "../modules/comment/comment.routes.js";
 import notificationRoutes from "../modules/notification/notification.routes.js";
 import paymentRoutes from "../modules/payment/payment.routes.js";
+import dashboardRoutes from "../modules/dashboard/dashboard.routes.js";
 
 const router: Router = express.Router(); // TS Change: Explicitly typed as Router
 
@@ -37,5 +38,6 @@ router.use("/votes", voteRoutes);
 router.use("/comments", commentRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/dashboard", dashboardRoutes);
 
 export default router;

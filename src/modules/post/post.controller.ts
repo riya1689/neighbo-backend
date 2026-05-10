@@ -404,3 +404,75 @@ export const sharePost = async (req: Request, res: Response, next: NextFunction)
     next(error);
   }
 };
+
+/**
+ * @desc    Update post
+ * @route   PATCH /api/posts/:id
+ * @access  Private
+ */
+export const updatePost = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { title, content } = req.body;
+    const userId = req.user.id;
+
+    const post = await prisma.post.findUnique({ where: { id } });
+
+    if (!post) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    if (post.userId !== userId) {
+      res.status(403).json({ message: "Unauthorized to edit this post" });
+      return;
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id },
+      data: {
+        title: title || post.title,
+        content: content || post.content,
+      },
+      include: {
+        user: { select: { displayName: true } },
+        category: { select: { name: true } },
+        neighborhood: { select: { name: true } },
+      }
+    });
+
+    res.json(updatedPost);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete post
+ * @route   DELETE /api/posts/:id
+ * @access  Private
+ */
+export const deletePost = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const post = await prisma.post.findUnique({ where: { id } });
+
+    if (!post) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    if (post.userId !== userId && req.user.role !== "ADMIN") {
+      res.status(403).json({ message: "Unauthorized to delete this post" });
+      return;
+    }
+
+    await prisma.post.delete({ where: { id } });
+
+    res.json({ message: "Post deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
