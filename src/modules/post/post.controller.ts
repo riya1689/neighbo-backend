@@ -448,7 +448,7 @@ export const updatePost = async (req: Request, res: Response, next: NextFunction
 };
 
 /**
- * @desc    Delete post
+ * @desc    Delete post (Soft Delete)
  * @route   DELETE /api/posts/:id
  * @access  Private
  */
@@ -469,7 +469,11 @@ export const deletePost = async (req: Request, res: Response, next: NextFunction
       return;
     }
 
-    await prisma.post.delete({ where: { id } });
+    // Soft delete: update isDeleted field
+    await prisma.post.update({
+      where: { id },
+      data: { isDeleted: true }
+    });
 
     res.json({ message: "Post deleted successfully" });
   } catch (error) {
