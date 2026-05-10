@@ -30,3 +30,5 @@ vercel/
 .env.local.development.local
 .env.local.production.local
 .env.local.test.local
+
+prisma/migrations/
