@@ -48,11 +48,11 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
     const { search } = req.query;
     const where = search
       ? {
-          OR: [
-            { displayName: { contains: String(search), mode: "insensitive" as const } },
-            { email: { contains: String(search), mode: "insensitive" as const } },
-          ],
-        }
+        OR: [
+          { displayName: { contains: String(search), mode: "insensitive" as const } },
+          { email: { contains: String(search), mode: "insensitive" as const } },
+        ],
+      }
       : {};
 
     const users = await prisma.user.findMany({
@@ -140,8 +140,8 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
   try {
     const { name } = req.body;
     if (!name) {
-       res.status(400).json({ message: "Category name is required" });
-       return;
+      res.status(400).json({ message: "Category name is required" });
+      return;
     }
     const category = await prisma.category.create({ data: { name } });
     res.status(201).json(category);
@@ -192,8 +192,8 @@ export const createNeighborhood = async (req: Request, res: Response, next: Next
   try {
     const { name, description } = req.body;
     if (!name) {
-       res.status(400).json({ message: "Neighborhood name is required" });
-       return;
+      res.status(400).json({ message: "Neighborhood name is required" });
+      return;
     }
     const neighborhood = await prisma.neighborhood.create({ data: { name, description: description || "" } });
     res.status(201).json(neighborhood);
@@ -233,18 +233,18 @@ export const getPlans = async (req: Request, res: Response, next: NextFunction):
 export const createPlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, description, price, duration } = req.body;
-    
+
     if (!name || !price || !duration) {
-       res.status(400).json({ message: "Name, price and duration are required" });
-       return;
+      res.status(400).json({ message: "Name, price and duration are required" });
+      return;
     }
 
     const plan = await prisma.premiumPlan.create({
-      data: { 
-        name, 
-        description: description || "", 
-        price: parseFloat(String(price)), 
-        duration: parseInt(String(duration)) 
+      data: {
+        name,
+        description: description || "",
+        price: parseFloat(String(price)),
+        duration: parseInt(String(duration))
       }
     });
     res.status(201).json(plan);
@@ -277,12 +277,12 @@ export const getPayments = async (req: Request, res: Response, next: NextFunctio
       },
       orderBy: { createdAt: "desc" },
     });
-     res.json(payments);
+    res.json(payments);
 
     // Mock/Add plan duration if needed, or fetch from planType if possible
     // Since adminRevenue has planType (string), we can fetch duration from PremiumPlan
     const plans = await prisma.premiumPlan.findMany();
-    
+
     const formattedPayments = payments.map(p => {
       const planInfo = plans.find(plan => plan.name === p.planType);
       return {
