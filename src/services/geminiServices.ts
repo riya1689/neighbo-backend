@@ -2,13 +2,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_API_KEY } from "../config/env.js";
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
-
+ 
 /**
  * AI connection check function
  */
 export const verifyGeminiConnection = async () => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash" });
     // Send a tiny prompt to test the API Key
     await model.generateContent("Hello");
     console.log("✅ Neighbo AI Connected Successfully!");
@@ -59,17 +59,21 @@ const splitResponseIntoBubbles = (text: string): string[] => {
 export const getAIResponse = async (userMessage: string, chatHistory: any[] = []) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash", // Trying a more universally supported modern ID
       systemInstruction: systemPrompt,
     });
 
     const chat = model.startChat({
-      history: chatHistory.map((msg: any) => ({
-        role: msg.role === "user" ? "user" : "model",
-        parts: [{ text: msg.parts[0].text }],
-      })),
+      history: chatHistory.map((msg: any) => {
+        const text = msg.parts?.[0]?.text || "";
+        return {
+          role: msg.role === "user" ? "user" : "model",
+          parts: [{ text }],
+        };
+      }).filter(msg => msg.parts[0].text.length > 0),
     });
 
+    console.log("Sending message to Gemini:", userMessage);
     const result = await chat.sendMessage(userMessage);
     const response = await result.response;
     const fullText = response.text();
@@ -77,11 +81,15 @@ export const getAIResponse = async (userMessage: string, chatHistory: any[] = []
 
     return splitResponseIntoBubbles(fullText);
   } catch (error: any) {
-    console.error("Error getting AI response:", error);
-    // If it's a safety block or API error, log more details
-    if (error.response) {
-      console.error("AI Error Details:", JSON.stringify(error.response, null, 2));
+    console.error("❌ Error getting AI response:", error.message);
+    if (error.stack) console.error(error.stack);
+    
+    // Detailed error logging
+    if (error.status) console.error("Status Code:", error.status);
+    if (error.response?.data) {
+      console.error("AI Error Data:", JSON.stringify(error.response.data, null, 2));
     }
-    return ["I'm having trouble connecting right now. Please try again in a moment."];
+    
+    return ["I'm having trouble connecting to my brain right now. Please try again in a moment."];
   }
 };
