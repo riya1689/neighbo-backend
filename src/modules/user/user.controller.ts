@@ -382,11 +382,11 @@ export const getPublicProfilePosts = async (req: Request, res: Response, next: N
 export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user.id;
-    const { bio, displayName } = req.body;
+    const { bio, displayName, neighborhoodId } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { nameLastUpdatedAt: true, displayName: true }
+      select: { nameLastUpdatedAt: true, displayName: true, neighborhoodId: true }
     });
 
     if (!user) {
@@ -395,6 +395,11 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
     }
 
     const dataToUpdate: any = {};
+
+    if (neighborhoodId && !user.neighborhoodId) {
+      // Allow setting neighborhoodId if it hasn't been set yet
+      dataToUpdate.neighborhoodId = neighborhoodId;
+    }
 
     if (bio !== undefined) {
       dataToUpdate.bio = bio;

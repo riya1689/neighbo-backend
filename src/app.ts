@@ -9,8 +9,10 @@ import notFound from "./middleware/notFound.js";
 import errorHandler from "./middleware/errorHandler.js";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { ALLOWED_ORIGINS } from "./config/env.js";
+import passport from "./config/passport.js";
 
 const app: Application = express(); // TS Change: Explicit type Application
+app.use(passport.initialize());
 app.get("/", (req: Request, res: Response) => {
   res.json({
     status: "success",

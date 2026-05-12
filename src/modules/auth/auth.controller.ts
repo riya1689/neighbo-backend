@@ -131,3 +131,39 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     next(error);
   }
 };
+
+/**
+ * @desc    Google OAuth Callback
+ * @route   GET /api/auth/google/callback
+ * @access  Private
+ */
+export const googleAuthCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const user = req.user as any;
+    if (!user) {
+      res.status(401).json({ message: "Authentication failed" });
+      return;
+    }
+
+    const token = generateToken(user.id);
+    
+    // Redirect to frontend with token and user data in query params (or use a secure cookie)
+    // For now, let's redirect to a success page or home with params
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    
+    // We can encode the user data to pass it safely
+    const userData = encodeURIComponent(JSON.stringify({
+      id: user.id,
+      displayName: user.displayName,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      neighborhoodId: user.neighborhoodId,
+      token
+    }));
+
+    res.redirect(`${frontendUrl}/auth/success?data=${userData}`);
+  } catch (error) {
+    next(error);
+  }
+};
