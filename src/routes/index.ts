@@ -13,6 +13,7 @@ import commentRoutes from "../modules/comment/comment.routes.js";
 import notificationRoutes from "../modules/notification/notification.routes.js";
 import paymentRoutes from "../modules/payment/payment.routes.js";
 import dashboardRoutes from "../modules/dashboard/dashboard.routes.js";
+import aiRoutes from "../modules/ai/ai.routes.js";
 
 const router: Router = express.Router(); // TS Change: Explicitly typed as Router
 
@@ -39,5 +40,6 @@ router.use("/comments", commentRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/ai", aiRoutes);
 
 export default router;
