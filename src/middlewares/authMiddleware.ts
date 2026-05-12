@@ -12,8 +12,17 @@ interface DecodedToken extends jwt.JwtPayload {
 // This allows req.user to be recognized by the compiler
 declare global {
   namespace Express {
-    interface Request {
-      user?: any; 
+    interface User {
+      id: string;
+      displayName: string;
+      email: string;
+      username: string;
+      role: string;
+      status?: string;
+      neighborhoodId?: string | null;
+      nameLastUpdatedAt?: Date | null;
+      passwordLastUpdatedAt?: Date | null;
+      createdAt?: Date;
     }
   }
 }
@@ -45,6 +54,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
         id: true,
         displayName: true,
         email: true,
+        username: true,
         role: true,
         status: true,
         neighborhoodId: true,
