@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
  */
 export const verifyGeminiConnection = async () => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     // Send a tiny prompt to test the API Key
     await model.generateContent("Hello");
     console.log("✅ Neighbo AI Connected Successfully!");
@@ -59,7 +59,7 @@ const splitResponseIntoBubbles = (text: string): string[] => {
 export const getAIResponse = async (userMessage: string, chatHistory: any[] = []) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-3.1-flash", // Trying a more universally supported modern ID
+      model: "gemini-2.5-flash", 
       systemInstruction: systemPrompt,
     });
 
