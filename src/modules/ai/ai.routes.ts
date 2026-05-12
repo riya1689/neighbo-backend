@@ -1,8 +1,8 @@
-import express from "express";
+import express, { type Router } from "express";
 import { chatController } from "./ai.controller.js";
 import { protect } from "../../middlewares/authMiddleware.js";
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * @route POST /api/ai/chat
