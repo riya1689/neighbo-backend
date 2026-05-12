@@ -1,16 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"; 
-import dotenv from "dotenv";
+import { GEMINI_API_KEY } from "../config/env.js";
 
-dotenv.config();
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
 
 /**
  * AI connection check function
  */
 export const verifyGeminiConnection = async () => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     // Send a tiny prompt to test the API Key
     await model.generateContent("Hello");
     console.log("✅ Neighbo AI Connected Successfully!");
@@ -61,7 +59,7 @@ const splitResponseIntoBubbles = (text: string): string[] => {
 export const getAIResponse = async (userMessage: string, chatHistory: any[] = []) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: systemPrompt,
     });
 
@@ -75,10 +73,15 @@ export const getAIResponse = async (userMessage: string, chatHistory: any[] = []
     const result = await chat.sendMessage(userMessage);
     const response = await result.response;
     const fullText = response.text();
+    console.log("AI Response received:", fullText.substring(0, 50) + "...");
 
     return splitResponseIntoBubbles(fullText);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error getting AI response:", error);
+    // If it's a safety block or API error, log more details
+    if (error.response) {
+      console.error("AI Error Details:", JSON.stringify(error.response, null, 2));
+    }
     return ["I'm having trouble connecting right now. Please try again in a moment."];
   }
 };

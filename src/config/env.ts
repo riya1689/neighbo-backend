@@ -86,3 +86,4 @@ export const SSL_IS_SANDBOX: boolean = (process.env.SSL_IS_SANDBOX || "").trim()
 export const SSL_SUCCESS_URL: string = getRequiredEnv("SSL_SUCCESS_URL");
 export const SSL_FAIL_URL: string = getRequiredEnv("SSL_FAIL_URL");
 export const SSL_CANCEL_URL: string = getRequiredEnv("SSL_CANCEL_URL");
+export const GEMINI_API_KEY: string = getRequiredEnv("GEMINI_API_KEY");

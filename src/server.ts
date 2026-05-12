@@ -3,6 +3,7 @@ import app from "./app.js";
 import prisma from "./config/prisma.js";
 import { PORT, SSL_STORE_ID, SSL_IS_SANDBOX } from "./config/env.js";
 import { Server } from "http"; // TS Change: Imported Server type
+import { verifyGeminiConnection } from "./services/geminiServices.js";
 
 // 🚀 Only ONE listener for the whole app
 // TS Change: Explicitly typed server as Server
@@ -14,6 +15,9 @@ const server: Server = app.listen(PORT, () => {
     const mode: string = SSL_IS_SANDBOX ? 'Sandbox' : 'Live';
     console.log(`💳 SSLCommerz: Connected (Mode: ${mode})`);
   }
+
+  // Verify Gemini AI Connection
+  verifyGeminiConnection();
 });
 
 /**

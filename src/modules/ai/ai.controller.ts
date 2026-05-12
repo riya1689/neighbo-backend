@@ -7,6 +7,7 @@ import { getAIResponse } from "../../services/geminiServices.js";
 export const chatController = async (req: Request, res: Response) => {
   try {
     const { userMessage, history } = req.body;
+    console.log("AI Chat Request:", { userMessage, historyLength: history?.length });
 
     if (!userMessage) {
       return res.status(400).json({
