@@ -66,6 +66,8 @@ model Post {
   neighborhoodId  String
   categoryId      String
   isDeleted       Boolean          @default(false)
+  isUpdate        Boolean          @default(false)
+  updateType      String?          // PREMIUM_PLAN, FEATURE, BUG, FIX, IDEA
   comments        Comment[]
   category        Category         @relation(fields: [categoryId], references: [id])
   neighborhood    Neighborhood     @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)

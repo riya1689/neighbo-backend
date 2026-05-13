@@ -58,7 +58,10 @@ export const getAllPosts = async (req: Request, res: Response, next: NextFunctio
     const { categoryId } = req.query;
     
     const posts = await prisma.post.findMany({
-      where: categoryId ? { categoryId: String(categoryId) } : {},
+      where: {
+        isUpdate: false,
+        ...(categoryId ? { categoryId: String(categoryId) } : {})
+      },
       include: {
         user: { select: { displayName: true, username: true } },
         category: { select: { name: true } },
@@ -133,8 +136,9 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
     const followingIds = user?.following.map(f => f.followingId) || [];
     const neighborhoodId = user?.neighborhoodId;
 
-    // 2. Fetch candidates
+    // 2. Fetch candidates (exclude official updates from main feed)
     const recentPosts = await prisma.post.findMany({
+      where: { isUpdate: false, isDeleted: false },
       take: 100,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -281,6 +285,7 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
           { neighborhood: { name: { contains: queryStr, mode: "insensitive" } } },
           { user: { displayName: { contains: queryStr, mode: "insensitive" } } },
         ],
+        isUpdate: false,
       },
       include: {
         user: { select: { displayName: true } },
@@ -323,7 +328,8 @@ export const getTrendingPosts = async (req: Request, res: Response, next: NextFu
 
     const posts = await prisma.post.findMany({
       where: {
-        createdAt: { gte: sevenDaysAgo }
+        createdAt: { gte: sevenDaysAgo },
+        isUpdate: false,
       },
       include: {
         user: { select: { displayName: true, username: true } },
