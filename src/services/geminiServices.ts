@@ -63,14 +63,26 @@ export const getAIResponse = async (userMessage: string, chatHistory: any[] = []
       systemInstruction: systemPrompt,
     });
 
-    const chat = model.startChat({
-      history: chatHistory.map((msg: any) => {
+    // Gemini history must alternate User/Model and MUST start with User.
+    // If the first message is from model (like our welcome message), we skip it for the API.
+    const formattedHistory = chatHistory
+      .map((msg: any) => {
         const text = msg.parts?.[0]?.text || "";
         return {
           role: msg.role === "user" ? "user" : "model",
           parts: [{ text }],
         };
-      }).filter(msg => msg.parts[0].text.length > 0),
+      })
+      .filter(msg => msg.parts[0].text.length > 0);
+
+    // Ensure history starts with 'user'
+    let finalHistory = formattedHistory;
+    if (finalHistory.length > 0 && finalHistory[0].role === "model") {
+      finalHistory = finalHistory.slice(1);
+    }
+
+    const chat = model.startChat({
+      history: finalHistory,
     });
 
     console.log("Sending message to Gemini:", userMessage);
