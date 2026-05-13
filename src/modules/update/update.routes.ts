@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Router } from "express";
 import { protect, restrictTo } from "../../middlewares/authMiddleware.js";
 import {
   createUpdate,
@@ -7,7 +7,7 @@ import {
   deleteUpdate
 } from "./update.controller.js";
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Public routes
 router.get("/", getUpdates);
