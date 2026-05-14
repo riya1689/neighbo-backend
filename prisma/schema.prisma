@@ -53,6 +53,7 @@ model User {
   payerEarnings         CreatorEarning[] @relation("PayerEarnings")
   unlockedPosts         UnlockedPost[]
   events                Event[]
+  profileImage          String?
 }
 
 model Post {

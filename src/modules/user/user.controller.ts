@@ -19,6 +19,7 @@ export const getUserProfile = async (req: Request, res: Response, next: NextFunc
         role: true,
         neighborhoodId: true,
         bio: true,
+        profileImage: true,
         nameLastUpdatedAt: true,
         passwordLastUpdatedAt: true,
         neighborhood: {
@@ -237,6 +238,7 @@ export const getPublicProfile = async (req: Request, res: Response, next: NextFu
         displayName: true,
         username: true,
         bio: true,
+        profileImage: true,
         role: true,
         neighborhood: { select: { name: true } },
         createdAt: true,
@@ -382,7 +384,7 @@ export const getPublicProfilePosts = async (req: Request, res: Response, next: N
 export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user.id;
-    const { bio, displayName, neighborhoodId } = req.body;
+    const { bio, displayName, neighborhoodId, profileImage } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -403,6 +405,10 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
     if (bio !== undefined) {
       dataToUpdate.bio = bio;
+    }
+
+    if (profileImage !== undefined) {
+      dataToUpdate.profileImage = profileImage;
     }
 
     if (displayName && displayName !== user.displayName) {
@@ -437,6 +443,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         displayName: true,
         username: true,
         bio: true,
+        profileImage: true,
         nameLastUpdatedAt: true,
         passwordLastUpdatedAt: true
       }
