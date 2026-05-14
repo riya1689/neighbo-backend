@@ -28,6 +28,47 @@ declare global {
 }
 
 // TS Change: Added types for req, res, and next
+export const optionalProtect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authHeader: string = req.headers.authorization || "";
+    if (!authHeader) return next();
+
+    let token: string = "";
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.slice(7).trim();
+    } else {
+      token = authHeader.trim();
+    }
+
+    if (!token) return next();
+
+    const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        displayName: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        neighborhoodId: true,
+        nameLastUpdatedAt: true,
+        passwordLastUpdatedAt: true,
+        createdAt: true
+      }
+    });
+
+    if (user && user.status !== "SUSPENDED") {
+      req.user = user;
+    }
+    return next();
+  } catch (_error) {
+    return next();
+  }
+}
+
 export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader: string = req.headers.authorization || "";

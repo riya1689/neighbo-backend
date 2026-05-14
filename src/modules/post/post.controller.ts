@@ -69,9 +69,12 @@ export const getAllPosts = async (req: Request, res: Response, next: NextFunctio
         votes: true,
         comments: true,
         shares: { select: { id: true } },
+        unlockedBy: { select: { userId: true } },
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const currentUserId = req.user?.id;
 
     const mappedPosts = posts.map(post => {
       const upvotes = post.votes.filter(v => v.type === "UPVOTE").length;
@@ -80,7 +83,8 @@ export const getAllPosts = async (req: Request, res: Response, next: NextFunctio
         ...post,
         netVotes: upvotes - downvotes,
         commentCount: post.comments.length,
-        shareCount: post.shares.length
+        shareCount: post.shares.length,
+        isUnlocked: post.unlockedBy.some(u => u.userId === currentUserId)
       };
     });
 
@@ -148,6 +152,7 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
         votes: { select: { type: true, userId: true } },
         comments: { select: { id: true, userId: true } },
         shares: { select: { id: true, userId: true } },
+        unlockedBy: { select: { userId: true } },
       }
     });
 
@@ -167,6 +172,7 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
             votes: { select: { type: true, userId: true } },
             comments: { select: { id: true, userId: true } },
             shares: { select: { id: true, userId: true } },
+            unlockedBy: { select: { userId: true } },
           }
         }
       }
@@ -245,7 +251,7 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
         score -= 45;
       }
 
-      const { votes, comments, shares, activityDate, _isShare, _shareUserId, ...postData } = post;
+      const { votes, comments, shares, unlockedBy, activityDate, _isShare, _shareUserId, ...postData } = post;
       const upvotes = votes.filter((v: any) => v.type === "UPVOTE").length;
       const downvotes = votes.filter((v: any) => v.type === "DOWNVOTE").length;
 
@@ -253,7 +259,8 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
         ...postData,
         _score: score,
         netVotes: upvotes - downvotes,
-        commentCount: comments.length
+        commentCount: comments.length,
+        isUnlocked: unlockedBy?.some((u: any) => u.userId === userId) || false
       };
     });
 
@@ -294,9 +301,12 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
         votes: true,
         comments: true,
         shares: { select: { id: true } },
+        unlockedBy: { select: { userId: true } },
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const currentUserId = req.user?.id;
 
     // Map to include counts
     const mappedPosts = posts.map(post => {
@@ -306,7 +316,8 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
         ...post,
         netVotes: upvotes - downvotes,
         commentCount: post.comments.length,
-        shareCount: post.shares.length
+        shareCount: post.shares.length,
+        isUnlocked: post.unlockedBy.some(u => u.userId === currentUserId)
       };
     });
 
@@ -338,9 +349,12 @@ export const getTrendingPosts = async (req: Request, res: Response, next: NextFu
         votes: true,
         comments: true,
         shares: { select: { id: true } },
+        unlockedBy: { select: { userId: true } },
       },
       take: 20
     });
+
+    const currentUserId = req.user?.id;
 
     const scoredPosts = posts.map(post => {
       const upvotes = post.votes.filter(v => v.type === "UPVOTE").length;
@@ -357,6 +371,7 @@ export const getTrendingPosts = async (req: Request, res: Response, next: NextFu
         netVotes,
         commentCount,
         shareCount,
+        isUnlocked: post.unlockedBy.some(u => u.userId === currentUserId),
         _score: score
       };
     });
