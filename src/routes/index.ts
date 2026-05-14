@@ -15,6 +15,7 @@ import paymentRoutes from "../modules/payment/payment.routes.js";
 import dashboardRoutes from "../modules/dashboard/dashboard.routes.js";
 import aiRoutes from "../modules/ai/ai.routes.js";
 import updateRoutes from "../modules/update/update.routes.js";
+import eventRoutes from "../modules/event/event.routes.js";
 
 const router: Router = express.Router(); // TS Change: Explicitly typed as Router
 
@@ -43,5 +44,6 @@ router.use("/payments", paymentRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/ai", aiRoutes);
 router.use("/updates", updateRoutes);
+router.use("/events", eventRoutes);
 
 export default router;

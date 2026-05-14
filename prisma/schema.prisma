@@ -12,12 +12,14 @@ model Neighborhood {
   description String
   posts       Post[]
   users       User[]
+  events      Event[]
 }
 
 model Category {
   id    String @id @default(uuid())
   name  String @unique
   posts Post[]
+  events Event[]
 }
 
 model User {
@@ -50,6 +52,7 @@ model User {
   creatorEarnings       CreatorEarning[] @relation("CreatorEarnings")
   payerEarnings         CreatorEarning[] @relation("PayerEarnings")
   unlockedPosts         UnlockedPost[]
+  events                Event[]
 }
 
 model Post {
@@ -279,4 +282,32 @@ enum PaymentStatus {
 enum ProductType {
   PREMIUM_PLAN
   CONTENT
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Event {
+  id              String       @id @default(uuid())
+  title           String
+  description     String
+  date            DateTime
+  imageUrl        String?
+  status          EventStatus  @default(PENDING)
+  userId          String
+  neighborhoodId  String
+  categoryId      String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  neighborhood    Neighborhood @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
+  category        Category     @relation(fields: [categoryId], references: [id])
+
+  @@index([userId])
+  @@index([neighborhoodId])
+  @@index([categoryId])
 }
