@@ -167,7 +167,7 @@ export const getFollowers = async (req: Request, res: Response, next: NextFuncti
       where: { followingId: req.user.id },
       include: {
         follower: {
-          select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } }
+          select: { id: true, displayName: true, username: true, profileImage: true, neighborhood: { select: { name: true } } }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -189,7 +189,7 @@ export const getFollowing = async (req: Request, res: Response, next: NextFuncti
       where: { followerId: req.user.id },
       include: {
         following: {
-          select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } }
+          select: { id: true, displayName: true, username: true, profileImage: true, neighborhood: { select: { name: true } } }
         }
       },
       orderBy: { createdAt: 'desc' }
