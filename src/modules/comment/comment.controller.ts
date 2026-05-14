@@ -13,10 +13,10 @@ export const getPostComments = async (req: Request, res: Response, next: NextFun
     const comments = await prisma.comment.findMany({
       where: { postId: postId as string, parentId: null }, // Fetch top-level comments
       include: {
-        user: { select: { id: true, displayName: true } },
+        user: { select: { id: true, displayName: true, username: true, profileImage: true } },
         replies: {
           include: {
-            user: { select: { id: true, displayName: true } }
+            user: { select: { id: true, displayName: true, username: true, profileImage: true } }
           },
           orderBy: { createdAt: "asc" }
         }
@@ -65,7 +65,7 @@ export const createComment = async (req: Request, res: Response, next: NextFunct
         parentId: parentId || null
       },
       include: {
-        user: { select: { displayName: true } }
+        user: { select: { displayName: true, username: true, profileImage: true } }
       }
     });
 

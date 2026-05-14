@@ -36,7 +36,7 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
         categoryId,
       },
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }
@@ -63,7 +63,7 @@ export const getAllPosts = async (req: Request, res: Response, next: NextFunctio
         ...(categoryId ? { categoryId: String(categoryId) } : {})
       },
       include: {
-        user: { select: { displayName: true, username: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: true,
@@ -142,7 +142,7 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
       take: 100,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: { select: { type: true, userId: true } },
@@ -158,10 +158,10 @@ export const getAlgorithmicFeed = async (req: Request, res: Response, next: Next
       take: 50,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         post: {
           include: {
-            user: { select: { displayName: true } },
+            user: { select: { displayName: true, username: true, profileImage: true } },
             category: { select: { name: true } },
             neighborhood: { select: { name: true } },
             votes: { select: { type: true, userId: true } },
@@ -288,7 +288,7 @@ export const searchPosts = async (req: Request, res: Response, next: NextFunctio
         isUpdate: false,
       },
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: true,
@@ -332,7 +332,7 @@ export const getTrendingPosts = async (req: Request, res: Response, next: NextFu
         isUpdate: false,
       },
       include: {
-        user: { select: { displayName: true, username: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
         votes: true,
@@ -441,7 +441,7 @@ export const updatePost = async (req: Request, res: Response, next: NextFunction
         content: content || post.content,
       },
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }

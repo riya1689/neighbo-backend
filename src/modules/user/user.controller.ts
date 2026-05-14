@@ -132,7 +132,7 @@ export const getSuggestedUsers = async (req: Request, res: Response, next: NextF
         neighborhoodId: currentUser?.neighborhoodId,
       },
       take: 5,
-      select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } },
+      select: { id: true, displayName: true, username: true, profileImage: true, neighborhood: { select: { name: true } } },
     });
 
     // Priority 2: Fill remaining slots with recent active users
@@ -145,7 +145,7 @@ export const getSuggestedUsers = async (req: Request, res: Response, next: NextF
         },
         orderBy: { createdAt: 'desc' },
         take: remainingSlots,
-        select: { id: true, displayName: true, username: true, neighborhood: { select: { name: true } } },
+        select: { id: true, displayName: true, username: true, profileImage: true, neighborhood: { select: { name: true } } },
       });
       suggestions = [...suggestions, ...otherSuggestions];
     }

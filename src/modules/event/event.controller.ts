@@ -27,7 +27,7 @@ export const createEvent = async (req: Request, res: Response, next: NextFunctio
         categoryId,
       },
       include: {
-        user: { select: { displayName: true, username: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }
@@ -71,7 +71,7 @@ export const getAdminEvents = async (req: Request, res: Response, next: NextFunc
     const events = await prisma.event.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        user: { select: { displayName: true, username: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }
@@ -182,7 +182,7 @@ export const getApprovedEvents = async (req: Request, res: Response, next: NextF
       take: limit ? Number(limit) : undefined,
       orderBy: { date: "asc" }, // Show nearest events first
       include: {
-        user: { select: { displayName: true, username: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }

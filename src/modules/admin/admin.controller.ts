@@ -273,7 +273,7 @@ export const getPayments = async (req: Request, res: Response, next: NextFunctio
   try {
     const payments = await prisma.adminRevenue.findMany({
       include: {
-        user: { select: { displayName: true, email: true } },
+        user: { select: { displayName: true, email: true, username: true, profileImage: true } },
       },
       orderBy: { createdAt: "desc" },
     });

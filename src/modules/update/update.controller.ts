@@ -28,7 +28,7 @@ export const createUpdate = async (req: Request, res: Response, next: NextFuncti
         categoryId,
       },
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }
@@ -57,7 +57,7 @@ export const getUpdates = async (req: Request, res: Response, next: NextFunction
       take: limit ? Number(limit) : undefined,
       orderBy: { createdAt: "desc" },
       include: {
-        user: { select: { displayName: true, username: true } },
+        user: { select: { displayName: true, username: true, profileImage: true } },
         category: { select: { name: true } },
         neighborhood: { select: { name: true } },
       }
