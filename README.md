@@ -7,6 +7,10 @@ The Neighbo Backend is a robust and scalable API built with **Node.js** and **Ty
 
 ---
 
+## Live Demo
+Live site: [https://neighbo-frontend.vercel.app](https://neighbo-frontend.vercel.app)
+---
+
 ## Role & Permissions
 The system implements a Role-Based Access Control (RBAC) mechanism:
 - **USER**:
@@ -83,7 +87,7 @@ The backend uses a centralized error-handling middleware to ensure clean and con
 
 ---
 
-## 🗄️ Database Tables
+## Database Tables
 The platform uses **Prisma** with **PostgreSQL**. Key models include:
 
 - `User`: Stores user profiles, roles, and status.
