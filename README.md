@@ -3,17 +3,23 @@
 Welcome to the backend of **Neighbo**, a community-driven platform designed to connect neighbors, share updates, and provide a space for local interactions.
 
 ## Project Overview
-The Neighbo Backend is a robust and scalable API built with **Node.js** and **TypeScript**. It serves as the core logic provider for the Neighbo platform, handling everything from secure authentication and payment processing to AI-driven assistance and real-time social interactions.
+The Neighbo Backend is a robust and scalable API built with **Node.js**, **Express.js** and **TypeScript**. It serves as the core logic provider for the Neighbo platform, handling everything from secure authentication and payment processing to AI-driven assistance and real-time social interactions.
 
 ---
 
 ## Live Demo
-Live site: [https://neighbo-frontend.vercel.app](https://neighbo-frontend.vercel.app)
+Live site: [https://neighbo-backend.vercel.app](https://neighbo-backend.vercel.app)
 ---
 
 ## Role & Permissions
 The system implements a Role-Based Access Control (RBAC) mechanism:
-- **USER**:
+
+- **PUBLIC USER**:
+    - Users who are not logged in.
+    - They can only view content.
+    - They cannot create posts, comments, votes, shares, use AI features, or subscribe to premium plans.
+
+- **REGISTERED USER**:
     - Create and interact with posts (comments, votes, shares).
     - Follow/Unfollow other neighbors.
     - Subscribe to Premium Plans.
@@ -29,16 +35,24 @@ The system implements a Role-Based Access Control (RBAC) mechanism:
 ---
 
 ## Features & Functionality
-- **Authentication**: Secure login via Google OAuth 2.0 and Email/Password with JWT.
-- **Social Core**: Posting (images/text), commenting, upvoting/downvoting, and sharing.
-- **Premium Content**: Monetization system allowing creators to set prices for specific posts.
+- **Authentication**: Secure login via Google OAuth 2.0 (passportjs)and Email, Password with JWT, password hashing with bcryptjs..
+- **Social Core**: Posting (images/text), commenting, upvoting/downvoting, follow/unfollow and sharing.
+- **Premium Content**: Monetization system allowing creators to set prices for specific posts. If any user unlocks or purchases premium content, that payment is added to the premium content creator’s revenue balance.
+- **Premium Plans**: When a user purchases a premium subscription plan, the payment is added to the platform admin’s revenue.
 - **AI Integration**: Integrated **Google Gemini AI** for smart community assistance.
+- **Invoice Generation**: Automatic invoice generation with **SSLCommerz** for subscriptions and content unlocking.
+- **Downloadable Cash Memo**: Users can download their cash memo after payment.
 - **Payment Gateway**: Seamless integration with **SSLCommerz** for subscriptions and content unlocking.
 - **Notifications**: System-wide notification service for follows, votes, and activities.
 - **Event Management**: Community event scheduling and approval workflow.
+-**User Dashboard**: User's personalized activity center.
+-**Admin Dashboard**: Full-featured management suite for platform administrators.
+-**Responsive Dashboard**: A personalized home feed for neighborhood updates.
+-**Event Discovery**: Calendar and list views for upcoming neighborhood events.
+-**Explore Feature**: Discover new neighborhoods and trending posts and categories.
+-**Onboarding Flow**: Structured registration process including neighborhood selection.
 
 ---
-
 ## Tech Stack
 - **Runtime**: Node.js
 - **Framework**: Express.js
@@ -71,10 +85,10 @@ All routes are prefixed with `/api`.
 ---
 
 ## Error Handling
-The backend uses a centralized error-handling middleware to ensure clean and consistent error responses.
+The backend uses a centralized error-handling middleware to ensure clean and consistent error responses. Whenever users try restricted actions or done successfull actions, the system shows beautiful React Hot Toast error messages. 
 
 **Sample Error Response:**
-```json
+```json 
 {
   "status": "error",
   "message": "Detailed error message here"
