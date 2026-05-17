@@ -45,12 +45,12 @@ The system implements a Role-Based Access Control (RBAC) mechanism:
 - **Payment Gateway**: Seamless integration with **SSLCommerz** for subscriptions and content unlocking.
 - **Notifications**: System-wide notification service for follows, votes, and activities.
 - **Event Management**: Community event scheduling and approval workflow.
--**User Dashboard**: User's personalized activity center.
--**Admin Dashboard**: Full-featured management suite for platform administrators.
--**Responsive Dashboard**: A personalized home feed for neighborhood updates.
--**Event Discovery**: Calendar and list views for upcoming neighborhood events.
--**Explore Feature**: Discover new neighborhoods and trending posts and categories.
--**Onboarding Flow**: Structured registration process including neighborhood selection.
+- **User Dashboard**: User's personalized activity center.
+- **Admin Dashboard**: Full-featured management suite for platform administrators.
+- **Responsive Dashboard**: A personalized home feed for neighborhood updates.
+- **Event Discovery**: Calendar and list views for upcoming neighborhood events.
+- **Explore Feature**: Discover new neighborhoods and trending posts and categories.
+- **Onboarding Flow**: Structured registration process including neighborhood selection.
 
 ---
 ## Tech Stack
